@@ -1191,7 +1191,6 @@ int LabelBinder::setBGColor(lua_State* L)
 	float green = luaL_checknumber(L, 3);
 	float blue = luaL_checknumber(L, 4);
 	label->setBGColor(red, green, blue);
-	
 	return 0;
 }
 
@@ -1583,6 +1582,28 @@ public:
 		return textField.text;
 		
 	}
+    
+    virtual void setTextColor(CGFloat r, CGFloat g, CGFloat b)
+	{
+		UIColor *color = [UIColor colorWithRed:r green:g blue:b alpha:1.0];
+        textField.backgroundColor = color;
+        			
+	}
+	
+	virtual void setBGColor(CGFloat r, CGFloat g, CGFloat b)
+	{
+		UIColor *color = [UIColor colorWithRed:r green:g blue:b alpha:1.0];
+        textField.textColor = color;
+
+	}
+	
+	virtual void showKeyboard()
+	{
+        
+		// set cursor and show keyboard
+        [textField becomeFirstResponder];
+        
+	}
 	
 private:
 	lua_State* L;
@@ -1601,6 +1622,9 @@ private:
 	static int destruct(lua_State* L);
 	static int setText(lua_State* L);
 	static int getText(lua_State* L);
+    static int setTextColor(lua_State* L);
+    static int setBGColor(lua_State* L);
+    static int showKeyboard(lua_State* L);
 };
 
 
@@ -1609,6 +1633,9 @@ TextFieldBinder2::TextFieldBinder2(lua_State* L)
 	const luaL_Reg functionlist[] = {
 		{"setText", setText},
 		{"getText", getText},
+        {"setTextColor", setTextColor},
+		{"setBGColor", setBGColor},
+		{"showKeyboard", showKeyboard},
 		{NULL, NULL},
 	};
 	
@@ -1666,6 +1693,43 @@ int TextFieldBinder2::getText(lua_State* L)
 	lua_pushstring(L, [txt UTF8String]);
 	return 1;
 }
+
+int TextFieldBinder2::setTextColor(lua_State* L)
+{
+	GReferenced* labelObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
+	Label* label = static_cast<Label*>(labelObject->proxy());
+	
+	float red = luaL_checknumber(L, 2);
+	float green = luaL_checknumber(L, 3);
+	float blue = luaL_checknumber(L, 4);
+	label->setTextColor(red, green, blue);
+	
+	return 0;
+}
+
+int TextFieldBinder2::setBGColor(lua_State* L)
+{
+	GReferenced* labelObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
+	Label* label = static_cast<Label*>(labelObject->proxy());
+	
+	float red = luaL_checknumber(L, 2);
+	float green = luaL_checknumber(L, 3);
+	float blue = luaL_checknumber(L, 4);
+	label->setBGColor(red, green, blue);
+    
+	return 0;
+}
+
+
+int TextFieldBinder2::showKeyboard(lua_State* L)
+{	
+    GReferenced* textFieldObject = static_cast<GReferenced*>(g_getInstance(L, "TextField2", 1));
+    TextField2* field = static_cast<TextField2*>(textFieldObject->proxy());
+    field->showKeyboard();
+    //NSLog(@"Binder showKeyboard");
+    return 1;
+}
+
 
 //-------------------------------------------//
 //------- UITextField ends here -------------//
@@ -1859,7 +1923,7 @@ static int hideStatusBar(lua_State* L)
 {
 	bool show = lua_toboolean(L, 1);
     [[UIApplication sharedApplication] setStatusBarHidden:show withAnimation: UIStatusBarAnimationNone];
-	return 0;
+	[[UIApplication sharedApplication] setStatusBarHidden:true withAnimation: UIStatusBarAnimationNone];	return 0;
 }
 
 static int addToRootView(lua_State* L)
@@ -1954,7 +2018,7 @@ static void g_initializePlugin(lua_State *L)
 
 static void g_deinitializePlugin(lua_State *L)
 {
-    [[UIApplication sharedApplication] setStatusBarHidden:true withAnimation: UIStatusBarAnimationNone];
+	[[UIApplication sharedApplication] setStatusBarHidden:true withAnimation: UIStatusBarAnimationNone];
 	for (std::set<UIView*>::iterator iter = topUIViews.begin(); iter != topUIViews.end(); ++iter)
 		[*iter removeFromSuperview];
 	topUIViews.clear();

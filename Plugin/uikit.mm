@@ -1727,7 +1727,8 @@ int TextFieldBinder2::showKeyboard(lua_State* L)
     TextField2* field = static_cast<TextField2*>(textFieldObject->proxy());
     field->showKeyboard();
     //NSLog(@"Binder showKeyboard");
-    return 1;
+    
+    return 0;
 }
 
 

@@ -1891,14 +1891,14 @@ public:
     virtual void setTextColor(CGFloat r, CGFloat g, CGFloat b)
 	{
 		UIColor *color = [UIColor colorWithRed:r green:g blue:b alpha:1.0];
-        textField.backgroundColor = color;
+        textField.textColor = color; 
         			
 	}
 	
 	virtual void setBGColor(CGFloat r, CGFloat g, CGFloat b)
 	{
 		UIColor *color = [UIColor colorWithRed:r green:g blue:b alpha:1.0];
-        textField.textColor = color;
+        textField.backgroundColor = color;
 
 	}
 	

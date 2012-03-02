@@ -1444,6 +1444,311 @@ int WebViewBinder::loadLocalFile(lua_State* L)
 
 //----------------------------------------------------------------------------------------------
 //-------------------------------------------//
+//------- UIPickerView begins here -----------//
+//-------------------------------------------//
+
+@interface UIPickerViewDelegate : UIViewController<UIPickerViewDataSource, UIPickerViewDelegate>
+{
+	lua_State* L;
+	GReferenced* target;
+
+}
+
+@property (nonatomic, assign) GReferenced* target;
+@property (nonatomic, assign) lua_State* L;
+
+
+- (BOOL)pickerView:(UIPickerView *)pickerView didSelectRow:(NSInteger)row inComponent:(NSInteger)component;
+- (NSInteger)pickerView:(UIPickerView *)pickerView numberOfRowsInComponent:(NSInteger)component;
+- (NSInteger)numberOfComponentsInPickerView:(UIPickerView *)pickerView ;
+- (NSString *)pickerView:(UIPickerView *)pickerView titleForRow:(NSInteger)row forComponent:(NSInteger)component; 
+- (CGFloat)pickerView:(UIPickerView *)pickerView widthForComponent:(NSInteger)component; 
+
+@end
+
+@implementation UIPickerViewDelegate
+
+@synthesize target;
+@synthesize L;
+
+NSMutableArray *rowNames = [NSMutableArray array];
+
+- (BOOL)pickerView:(UIPickerView *)pickerView didSelectRow: (NSInteger)row inComponent:(NSInteger)component {
+    
+    // Handle the selection
+    
+    getObject(L, target);
+	
+	if (!lua_isnil(L, -1))
+	{
+		lua_getfield(L, -1, "dispatchEvent");
+		
+		lua_pushvalue(L, -2);
+		
+		lua_getglobal(L, "Event");
+		lua_getfield(L, -1, "new");
+		lua_remove(L, -2);
+		lua_pushstring(L, "onPickerRows");
+		lua_call(L, 1, 1);
+       
+        NSString *text = [rowNames objectAtIndex:row];
+		lua_pushstring(L, [text UTF8String]);
+        lua_setfield(L, -2, "item");
+		
+		if (lua_pcall(L, 2, 0, 0) != 0)
+		{
+			g_error(L, lua_tostring(L, -1));
+			return true;
+		}
+	}
+	
+	lua_pop(L, 1);	
+    
+    return YES;
+    
+}
+
+// tell the picker how many rows are available for a given component
+- (NSInteger)pickerView:(UIPickerView *)pickerView numberOfRowsInComponent:(NSInteger)component {
+   
+    return [rowNames count];
+    
+}
+
+// tell the picker how many components it will have
+- (NSInteger)numberOfComponentsInPickerView:(UIPickerView *)pickerView {
+     
+    return 1;
+    
+}
+
+// tell the picker the title for a given component
+- (NSString *)pickerView:(UIPickerView *)pickerView titleForRow:(NSInteger)row forComponent:(NSInteger)component {
+    
+    return [rowNames objectAtIndex:row];
+  
+}
+
+// tell the picker the width of each row for a given component
+- (CGFloat)pickerView:(UIPickerView *)pickerView widthForComponent:(NSInteger)component {
+    
+    return 300;
+    
+}
+
+@end
+
+class PickerView : public View
+{
+public:
+	PickerView(lua_State* L) : View(L)
+	{
+        
+		delegate = [[UIPickerViewDelegate alloc] init];
+		delegate.L = L;
+		delegate.target = this;
+       
+        [rowNames removeAllObjects];
+               
+        //push nil onto the stack so that the while loop will work
+        lua_pushnil(L);
+        
+        if (lua_isnil(L, 1)) {
+        
+            [rowNames addObject:@"Error! - No Table"];
+            return;
+            
+        }
+        //move the table into an NSMutableArray
+        while (lua_next(L, 1) != 0) {
+          
+            //==3 value - sort this -1==
+            //==2 key - key -2==
+            //==1 tableToBeSorted -3==
+            
+            NSString *value = [NSString stringWithUTF8String:luaL_checkstring(L, -1)];
+            [rowNames addObject:value];
+            
+            //removes 'value'; keeps 'key' for next iteration
+            lua_pop(L, 1);
+        }
+        
+            
+
+    }
+	
+	virtual ~PickerView()
+	{
+		pickerView.delegate = nil;
+
+		[delegate release];
+		[pickerView release];
+ 
+	}
+	
+	virtual void create()	
+	{
+                       
+	    pickerView = [[UIPickerView alloc] initWithFrame:CGRectMake(0, 240 - 72, 320, 240 - 72)];
+		[pickerView setDelegate:delegate];
+       
+		pickerView.showsSelectionIndicator = YES;
+		
+		[pickerView retain];
+       
+		uiView = pickerView;
+		
+	}
+    
+    virtual NSInteger getRowCount()	
+	{
+		return [rowNames count];
+		
+	}
+    
+    virtual void setRow(NSInteger row)	
+	{
+		[pickerView selectRow:row - 1 inComponent:0 animated:YES]; // make 1 .. N to 0 to N .. 1
+		
+	}
+
+    
+    virtual NSInteger getPickedRow()	
+	{
+        
+        return [pickerView selectedRowInComponent:0] + 1; // make 0 .. N - 1 to 1 .. N
+		
+	}
+
+    virtual NSString* getPickedItem()	
+	{
+        
+        return [rowNames objectAtIndex:[pickerView selectedRowInComponent:0]];
+		
+	}
+
+	
+private:
+	lua_State* L;
+	UIPickerView* pickerView;
+	UIPickerViewDelegate* delegate;
+};
+
+
+class PickerViewBinder : public GEventDispatcherProxy
+{
+public:
+	PickerViewBinder(lua_State* L);
+	
+private:
+	static int create(lua_State* L);
+	static int destruct(lua_State* L);
+    static int getRowCount(lua_State* L);    
+    static int setRow(lua_State* L);
+    static int getPickedRow(lua_State* L);
+    static int getPickedItem(lua_State* L);
+};
+
+
+PickerViewBinder::PickerViewBinder(lua_State* L)
+{
+	const luaL_Reg functionlist[] = {
+        {"getRowCount", getRowCount},
+        {"setRow", setRow},
+        {"getPickedRow", getPickedRow},
+        {"setRow", setRow},
+        {"getPickedItem", getPickedItem},
+		{NULL, NULL},
+	};
+	
+	g_createClass(L, "PickerView", "View", create, destruct, functionlist);	
+}
+
+int PickerViewBinder::create(lua_State* L)
+{
+	//const char* text = luaL_checkstring(L, 1);
+	
+	PickerView* view = new PickerView(L);
+	
+	view->create(/*[NSString stringWithUTF8String:text]*/);
+	
+	g_pushInstance(L, "PickerView", view->object());
+	
+	setObject(L, view);
+    
+	return 1;
+}
+
+
+int PickerViewBinder::destruct(lua_State* L)
+{
+	void* ptr = *(void**)lua_touserdata(L, 1);
+	GReferenced* object = static_cast<GReferenced*>(ptr);
+	PickerView* pickerObject = static_cast<PickerView*>(object->proxy());
+	
+	pickerObject->unref(); 
+	
+	return 0;
+}
+
+
+int PickerViewBinder::getRowCount(lua_State* L)
+{
+	GReferenced* object = static_cast<GReferenced*>(g_getInstance(L, "PickerView", 1));
+	PickerView* pickerObject = static_cast<PickerView*>(object->proxy());
+    
+	NSInteger count = pickerObject->getRowCount();
+    lua_pushinteger(L, count);
+    
+	return 1;
+}
+
+int PickerViewBinder::setRow(lua_State* L)
+{
+	GReferenced* object = static_cast<GReferenced*>(g_getInstance(L, "PickerView", 1));
+	PickerView* pickerObject = static_cast<PickerView*>(object->proxy());
+    
+    NSInteger i = luaL_checkint(L, 2);
+
+	pickerObject->setRow(i); 
+    
+	return 0;
+    
+}
+
+
+
+int PickerViewBinder::getPickedRow(lua_State* L)
+{
+	GReferenced* object = static_cast<GReferenced*>(g_getInstance(L, "PickerView", 1));
+	PickerView* pickerObject = static_cast<PickerView*>(object->proxy());
+    
+	NSInteger count = pickerObject->getPickedRow();
+    lua_pushinteger(L, count);
+    
+	return 1;
+}
+
+
+int PickerViewBinder::getPickedItem(lua_State* L)
+{
+	GReferenced* object = static_cast<GReferenced*>(g_getInstance(L, "PickerView", 1));
+	PickerView* pickerObject = static_cast<PickerView*>(object->proxy());
+    
+	NSString *txt = pickerObject->getPickedItem();
+	lua_pushstring(L, [txt UTF8String]);
+    
+	return 1;
+}
+
+//-------------------------------------------//
+//------- UIPickerView ends here -------------//
+//-------------------------------------------//
+
+
+
+//----------------------------------------------------------------------------------------------
+//-------------------------------------------//
 //------- UITextField begins here -----------//
 //-------------------------------------------//
 
@@ -1691,31 +1996,32 @@ int TextFieldBinder2::getText(lua_State* L)
 	NSString *txt = field->getText();
 	NSLog(@"%@", txt);
 	lua_pushstring(L, [txt UTF8String]);
+    
 	return 1;
 }
 
 int TextFieldBinder2::setTextColor(lua_State* L)
 {
-	GReferenced* labelObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
-	Label* label = static_cast<Label*>(labelObject->proxy());
+	GReferenced* textFieldObject = static_cast<GReferenced*>(g_getInstance(L, "TextField2", 1));
+	TextField2* field = static_cast<TextField2*>(textFieldObject->proxy());
 	
 	float red = luaL_checknumber(L, 2);
 	float green = luaL_checknumber(L, 3);
 	float blue = luaL_checknumber(L, 4);
-	label->setTextColor(red, green, blue);
+	field->setTextColor(red, green, blue);
 	
 	return 0;
 }
 
 int TextFieldBinder2::setBGColor(lua_State* L)
 {
-	GReferenced* labelObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
-	Label* label = static_cast<Label*>(labelObject->proxy());
+	GReferenced* textFieldObject = static_cast<GReferenced*>(g_getInstance(L, "TextField2", 1));
+	TextField2* field = static_cast<TextField2*>(textFieldObject->proxy());
 	
 	float red = luaL_checknumber(L, 2);
 	float green = luaL_checknumber(L, 3);
 	float blue = luaL_checknumber(L, 4);
-	label->setBGColor(red, green, blue);
+	field->setBGColor(red, green, blue);
     
 	return 0;
 }
@@ -1727,8 +2033,7 @@ int TextFieldBinder2::showKeyboard(lua_State* L)
     TextField2* field = static_cast<TextField2*>(textFieldObject->proxy());
     field->showKeyboard();
     //NSLog(@"Binder showKeyboard");
-    
-    return 0;
+    return 1;
 }
 
 
@@ -1987,6 +2292,8 @@ static int loader(lua_State* L)
 	SliderBinder sliderBinder(L);
 	TextFieldBinder2 textFieldBinder2(L);
 	WebViewBinder webViewBinder(L);
+    PickerViewBinder PickerViewBinder(L);
+
 	ToolbarBinder toolbarBinder(L);
 	ScrollViewBinder scrollViewBinder(L);
 	

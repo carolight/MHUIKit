@@ -1055,6 +1055,21 @@ int ScrollViewBinder::add(lua_State* L)
 	View* view = static_cast<View*>(viewObject->proxy());
 	UIView* uiView = view->uiView;
 	scroll->add(uiView);
+	
+//Michael Hartlef 20120303 - This need to be added to have views that are added the scroll view not be garbadge collected >>>>>>>
+	topUIViews.insert(uiView);
+	
+	lua_pushlightuserdata(L, (void *)&KEY_ROOTOBJECTS);
+	lua_rawget(L, LUA_REGISTRYINDEX);
+	lua_pushlightuserdata(L, view);
+	lua_pushvalue(L, 2);
+	lua_rawset(L, -3);
+	lua_pop(L, 1);
+//Michael Hartlef 20120303 <<<<<<<<<<
+	
+	
+	
+	
 	return 0;
 }
 

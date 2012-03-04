@@ -1,7 +1,7 @@
 require "ui"
 
 hideStatusBar(false)
-useScrollView=false
+useScrollView=true
 --********** Create a scrollView ************
 
 if useScrollView==true then

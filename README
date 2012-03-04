@@ -5,12 +5,10 @@ The original work for this was done by Michael Hartlef. For the original code an
 
 http://www.giderosmobile.com/forum/discussion/578/uikit-plugin-example
 
-UIKit for Gideros Studio is a plugin for iOS that allows usage of UIView, UIButton, UITextField, UIAlertView, UIWebView, UIScrollView, UILabel, UISwitch, UISlider, UIToolbar.
+UIKit for Gideros Studio is a plugin for iOS that allows usage of UIView, UIButton, UITextField, UIAlertView, UIWebView, UIScrollView, UILabel, UISwitch, UISlider, UIToolbar, UIPickerView.
 
 Events are dispatched to Gideros Studio.
 
 Known issues:
 
 1. Not all methods and properties are implemented.
-
-2. When using a UISlider on a UIScrollView, the UIButtons stop working

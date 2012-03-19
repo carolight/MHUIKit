@@ -1,3 +1,8 @@
+//Changes 18th March 2012 - Caroline Begbie
+//added pragma marks
+//added convenience function luaTableToArray 
+//added UITableView (WIP)
+
 #include "gideros.h"
 #include <set>
 
@@ -174,6 +179,8 @@ static void getObject(lua_State* L, void* ptr)
 @end
 
 //----------------------------------------------------------------------------------------------
+#pragma mark ---- UIView ----
+
 class View : public GEventDispatcherProxy
 {
 public:
@@ -259,7 +266,6 @@ int ViewBinder::create(lua_State* L)
 {
 	View* view = new View(L);
 	view->create();
-	
 	g_pushInstance(L, "View", view->object());
 	
 	setObject(L, view);
@@ -327,6 +333,8 @@ int ViewBinder::setSize(lua_State* L)
 }
 
 //----------------------------------------------------------------------------------------------
+#pragma mark ---- UISwitch ----
+
 class Switch : public View
 {
 public:
@@ -429,6 +437,8 @@ int SwitchBinder::getState(lua_State* L)
 }
 
 //----------------------------------------------------------------------------------------------
+#pragma mark ---- UISlider ----
+
 class Slider : public View
 {
 public:
@@ -563,6 +573,8 @@ int SliderBinder::setThumbImage(lua_State* L)
 
 
 //----------------------------------------------------------------------------------------------
+#pragma mark ---- UIToolbar ----
+
 class Toolbar : public View
 {
 public:
@@ -767,6 +779,8 @@ int ToolbarBinder::add(lua_State* L)
 }
 
 //----------------------------------------------------------------------------------------------
+#pragma mark ---- UIButton ----
+
 class Button : public View
 {
 public:
@@ -963,6 +977,8 @@ int ButtonBinder::setImage(lua_State* L)
 }
 
 //----------------------------------------------------------------------------------------------
+#pragma mark ---- UIScrollView ----
+
 class ScrollView : public View
 {
 public:
@@ -1056,7 +1072,7 @@ int ScrollViewBinder::add(lua_State* L)
 	UIView* uiView = view->uiView;
 	scroll->add(uiView);
 	
-//Michael Hartlef 20120303 - This need to be added to have views that are added the scroll view not be garbadge collected >>>>>>>
+//Michael Hartlef 20120303 - This need to be added to have views that are added the scroll view not be garbage collected >>>>>>>
 	topUIViews.insert(uiView);
 	
 	lua_pushlightuserdata(L, (void *)&KEY_ROOTOBJECTS);
@@ -1074,6 +1090,8 @@ int ScrollViewBinder::add(lua_State* L)
 }
 
 //----------------------------------------------------------------------------------------------
+#pragma mark ---- UILabel ----
+
 class Label : public View
 {
 public:
@@ -1222,9 +1240,229 @@ int LabelBinder::setFont(lua_State* L)
 }
 
 
+#pragma mark ---- UITableView ----
+//----------------------------------------------------------------------------------------------
+//-------------------------------------------//
+//------- UITableView begins here -----------//
+//-------------------------------------------//
+
+@interface UITableViewDelegate : NSObject<UITableViewDelegate, UITableViewDataSource>
+{
+	lua_State* L;
+	GReferenced* target;
+}
+
+@property (nonatomic, assign) GReferenced* target;
+@property (nonatomic, assign) lua_State* L;
+@property (nonatomic, retain) NSArray *dataArray;
+@property (nonatomic, assign) NSString *cellText;
+
+@end
+
+@implementation UITableViewDelegate
+
+@synthesize target;
+@synthesize L;
+@synthesize dataArray;
+@synthesize cellText;
+
+//delegate methods
+-(void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
+{
+	getObject(L, target);
+	if (!lua_isnil(L, -1))
+	{
+		lua_getfield(L, -1, "dispatchEvent");
+		lua_pushvalue(L, -2);
+		lua_getglobal(L, "Event");
+		lua_getfield(L, -1, "new");
+		lua_remove(L, -2);
+		lua_pushstring(L, "didSelectRowAtIndexPath");
+		lua_call(L, 1, 1);
+		
+        lua_pushinteger(L, indexPath.row);
+        lua_setfield(L, -2, "Row");
+		if (lua_pcall(L, 2, 0, 0) != 0)
+		{
+			g_error(L, lua_tostring(L, -1));
+			return;
+		}
+	}
+	lua_pop(L, 1);	
+    return;
+}
+
+//datasource methods
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
+{
+    return dataArray.count;
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    static NSString *CellIdentifier = @"Cell";
+    
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellIdentifier];
+    if (cell == nil) {
+        cell = [[[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:CellIdentifier] autorelease];
+    }
+    
+    
+    //send an event so that the cell can be formatted
+    getObject(L, target);
+	if (!lua_isnil(L, -1))
+	{
+		lua_getfield(L, -1, "dispatchEvent");
+		lua_pushvalue(L, -2);
+		lua_getglobal(L, "Event");
+		lua_getfield(L, -1, "new");
+		lua_remove(L, -2);
+		lua_pushstring(L, "cellForRowAtIndexPath");
+		lua_call(L, 1, 1);
+		
+        lua_pushinteger(L, indexPath.row);
+        lua_setfield(L, -2, "Row");
+		if (lua_pcall(L, 2, 0, 0) != 0)
+		{
+			g_error(L, lua_tostring(L, -1));
+			return nil;
+		}
+	}
+	lua_pop(L, 1);	
+
+    //cellText is set by calling tableView:setCellText() from the 
+    //Gideros event function called above
+    cell.textLabel.text = self.cellText;
+    return cell;
+}
+
+-(void)dealloc
+{
+    [dataArray release];
+    [super dealloc];
+}
+
+@end
 
 
 //----------------------------------------------------------------------------------------------
+class TableView : public View
+{
+public:
+	TableView(lua_State* L) : View(L)
+	{
+		selectorToEvent.type = @"onLabelClick";	
+        delegate = [[UITableViewDelegate alloc] init];
+        delegate.L = L;
+        delegate.target = this;
+	}
+	
+	virtual ~TableView()
+	{
+        NSLog(@"TableView destructor");
+        UITableView *tableView = (UITableView *)uiView;
+        tableView.delegate = nil;
+        tableView.dataSource = nil;
+        [delegate release];
+	}
+	
+	virtual void create()	
+	{
+        UITableView *tableView = [[UITableView alloc] init];
+        tableView.delegate = delegate;
+        tableView.dataSource = delegate;
+		uiView = tableView;
+	}
+    
+    void setData(NSArray *array)
+    {
+        delegate.dataArray = array;
+        UITableView *tableView = (UITableView *)uiView;
+        [tableView reloadData];
+    }
+    
+    void setCellText(NSString *text)
+    {
+        delegate.cellText = text;
+    }
+    
+private:
+    lua_State *L;
+    UITableViewDelegate *delegate;
+};
+
+//----------------------------------------------------------------------------------------------
+class TableViewBinder
+{
+public:
+	TableViewBinder(lua_State* L);
+	
+private:
+	static int create(lua_State* L);
+	static int destruct(lua_State* L);
+    
+    static int setData(lua_State *L);
+    static int setCellText(lua_State *L);
+};
+
+TableViewBinder::TableViewBinder(lua_State* L)
+{
+	const luaL_Reg functionlist[] = {
+        {"setData", setData},
+        {"setCellText", setCellText},
+		{NULL, NULL},
+	};
+	
+	g_createClass(L, "TableView", "View", create, destruct, functionlist);	
+}
+
+int TableViewBinder::create(lua_State* L)
+{
+    TableView *tableView = new TableView(L);
+	tableView->create();
+	
+	g_pushInstance(L, "TableView", tableView->object());
+	
+	setObject(L, tableView);
+	return 1;
+}
+
+int TableViewBinder::destruct(lua_State* L)
+{
+	void* ptr = *(void**)lua_touserdata(L, 1);
+	GReferenced* object = static_cast<GReferenced*>(ptr);
+	TableView* tableView = static_cast<TableView*>(object->proxy());
+	tableView->unref(); 
+	
+	return 0;
+}
+
+int TableViewBinder::setData(lua_State* L)
+{
+    GReferenced* tableViewObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
+	TableView *tableView = static_cast<TableView*>(tableViewObject->proxy());
+
+    NSArray *array = (NSArray *)lua_touserdata(L, 2);
+    tableView->setData(array);
+    return 0;
+}
+
+int TableViewBinder::setCellText(lua_State *L)
+{
+    GReferenced* tableViewObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
+	TableView *tableView = static_cast<TableView*>(tableViewObject->proxy());
+    
+    //pop the text value from the stack
+    NSString *text = [NSString stringWithUTF8String:luaL_checkstring(L, -1)];
+    tableView->setCellText(text);
+    return 0;
+}
+
+
+//----------------------------------------------------------------------------------------------
+#pragma mark ---- UIWebView ----
+
 //-------------------------------------------//
 //------- UIWebView begins here -----------//
 //-------------------------------------------//
@@ -1392,7 +1630,6 @@ private:
 	UIWebViewDelegate* delegate;
 };
 
-
 class WebViewBinder : public GEventDispatcherProxy
 {
 public:
@@ -1458,6 +1695,8 @@ int WebViewBinder::loadLocalFile(lua_State* L)
 
 
 //----------------------------------------------------------------------------------------------
+#pragma mark ---- UIPickerView ----
+
 //-------------------------------------------//
 //------- UIPickerView begins here -----------//
 //-------------------------------------------//
@@ -1763,6 +2002,8 @@ int PickerViewBinder::getPickedItem(lua_State* L)
 
 
 //----------------------------------------------------------------------------------------------
+#pragma mark ---- UITextField ----
+
 //-------------------------------------------//
 //------- UITextField begins here -----------//
 //-------------------------------------------//
@@ -2059,6 +2300,8 @@ int TextFieldBinder2::showKeyboard(lua_State* L)
 
 
 //----------------------------------------------------------------------------------------------
+#pragma mark ---- UIAlertView ----
+
 //-------------------------------------------//
 //------- AlertView begins here -------------//
 //-------------------------------------------//
@@ -2296,6 +2539,53 @@ static int removeFromRootView(lua_State* L)
 	return 0;
 }
 
+//Convenience function for UITableView data source
+static int luaTableToArray(lua_State* L)
+{
+    NSMutableArray *array = [NSMutableArray array];
+
+    //==1 Lua table -1==
+    lua_pushnil(L);
+
+    //==2 nil -1==
+    //==1 Lua table -2==
+    
+    //move the table into an NSMutableArray
+    while (lua_next(L, 1) != 0) {
+        //==3 value -1==
+        //==2 key - in an array, this is the index number -2==
+        //==1 Lua table -3==
+        
+        id finalValue = nil;
+        switch (lua_type(L, -1)) {
+            case LUA_TNUMBER: {
+                int value = lua_tonumber(L, -1);
+                NSNumber *number = [NSNumber numberWithInt:value];
+                finalValue = number;
+                break;
+            }
+            case LUA_TBOOLEAN: {
+                int value = lua_toboolean(L, -1);
+                NSNumber *number = [NSNumber numberWithBool:value];
+                finalValue = number;
+                break;
+            }
+            case LUA_TSTRING: {
+                NSString *value = [NSString stringWithUTF8String:luaL_checkstring(L, -1)];
+                finalValue = value;
+                break;
+            }
+        }
+        [array addObject:finalValue];
+        // remove value - key stays for lua_next
+        lua_pop(L, 1);
+    }
+    
+    lua_pushlightuserdata(L, array);
+    //return the address of the array to Gideros Studio for use later
+    return 1;
+}
+
 
 static int loader(lua_State* L)
 {
@@ -2311,6 +2601,7 @@ static int loader(lua_State* L)
 
 	ToolbarBinder toolbarBinder(L);
 	ScrollViewBinder scrollViewBinder(L);
+    TableViewBinder tableViewBinder(L);
 	
 	lua_pushcfunction(L, hideStatusBar);
 	lua_setglobal(L, "hideStatusBar");
@@ -2321,6 +2612,9 @@ static int loader(lua_State* L)
 	lua_pushcfunction(L, removeFromRootView);
 	lua_setglobal(L, "removeFromRootView");
 	
+    lua_pushcfunction(L, luaTableToArray);
+	lua_setglobal(L, "luaTableToArray");
+    
 	createObjectsTable(L);
 	createRootObjectsTable(L);
 

@@ -2487,7 +2487,8 @@ static int hideStatusBar(lua_State* L)
 {
 	bool show = lua_toboolean(L, 1);
     [[UIApplication sharedApplication] setStatusBarHidden:show withAnimation: UIStatusBarAnimationNone];
-	[[UIApplication sharedApplication] setStatusBarHidden:true withAnimation: UIStatusBarAnimationNone];	return 0;
+//	[[UIApplication sharedApplication] setStatusBarHidden:true withAnimation: UIStatusBarAnimationNone];	
+    return 0;
 }
 
 static int addToRootView(lua_State* L)

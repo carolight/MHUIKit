@@ -1,5 +1,6 @@
 //Changes 17th August 2012 - Giles Allensby 
 //added UIImageView
+//added UIProgressView
 //added UIActivityIndicatorView Thanks to @techdojo
 //Enhanced UITableView
 //Enhanced UIButton
@@ -537,6 +538,208 @@ int ActivityIndicatorBinder::setColor(lua_State* L)
     
     activity->setColor(r,g,b,a);
     return 0;
+}
+
+//----------------------------------------------------------------------------------------------
+#pragma mark ---- UIProgressView ----
+
+class ProgressView : public View
+{
+public:
+	ProgressView(lua_State* L) : View(L)
+	{
+	}
+	
+	virtual ~ProgressView()
+	{
+	}
+	
+	virtual void create(NSString* style)
+	{
+        UIProgressView* progress;
+        if ([style isEqualToString:@"Default"]) {
+            progress = [[UIProgressView alloc] initWithProgressViewStyle:UIProgressViewStyleDefault];
+        } else if([style isEqualToString:@"Bar"]){
+            progress = [[UIProgressView alloc] initWithProgressViewStyle:UIProgressViewStyleDefault];
+        } else {
+            progress = [[UIProgressView alloc] initWithProgressViewStyle:UIProgressViewStyleDefault];
+        }
+        
+        [progress setProgress:0.0];
+		[progress retain];
+		
+		uiView = progress;
+	}
+    
+    void setProgressColor(float r, float g, float b, float a)
+    {
+        UIProgressView *progress = (UIProgressView *)uiView;
+        
+        [progress setProgressTintColor:[UIColor colorWithRed:r green:g blue:b alpha:a]];
+    }
+    
+    void setTrackColor(float r, float g, float b, float a)
+    {
+        UIProgressView *progress = (UIProgressView *)uiView;
+        
+        [progress setTrackTintColor:[UIColor colorWithRed:r green:g blue:b alpha:a]];
+    }
+    
+    void setTrackImage(NSString* imagefile)
+    {
+        UIProgressView *progress = (UIProgressView *)uiView;
+        UIImage *img = [[[UIImage alloc] initWithContentsOfFile:imagefile] autorelease];
+        [progress setTrackImage:img];
+    }
+    
+    void setProgress(float prog, BOOL animated)
+    {
+        UIProgressView *progress = (UIProgressView *)uiView;
+        
+        [progress setProgress:prog animated:animated];
+    }
+    
+    void setProgressImage(NSString* imagefile)
+    {
+        UIProgressView *progress = (UIProgressView *)uiView;
+        UIImage *img = [[[UIImage alloc] initWithContentsOfFile:imagefile] autorelease];
+        [progress setProgressImage:img];
+    }
+    
+    float getProgress()
+    {
+        UIProgressView *progress = (UIProgressView *)uiView;
+        float prog = [progress progress];
+        return prog;
+    }
+};
+
+//----------------------------------------------------------------------------------------------
+class ProgressViewBinder
+{
+public:
+	ProgressViewBinder(lua_State* L);
+	
+private:
+	static int create(lua_State* L);
+	static int destruct(lua_State* L);
+    static int setProgressColor(lua_State* L);
+    static int setTrackColor(lua_State* L);
+    static int setProgress(lua_State* L);
+    static int setTrackImage(lua_State* L);
+    static int setProgressImage(lua_State* L);
+    static int getProgress(lua_State* L);
+};
+
+ProgressViewBinder::ProgressViewBinder(lua_State* L)
+{
+	const luaL_Reg functionlist[] = {
+        {"setProgressColor", setProgressColor},
+        {"setTrackColor", setTrackColor},
+        {"setProgress", setProgress},
+        {"setTrackImage", setTrackImage},
+        {"setProgressImage", setProgressImage},
+        {"getProgress", getProgress},
+		{NULL, NULL},
+	};
+	
+	g_createClass(L, "ProgressView", "View", create, destruct, functionlist);
+}
+
+int ProgressViewBinder::create(lua_State* L)
+{
+	ProgressView* progress = new ProgressView(L);
+    const char* type = luaL_checkstring(L, 1);
+	progress->create([NSString stringWithUTF8String:type]);
+	
+	g_pushInstance(L, "ProgressView", progress->object());
+	
+	setObject(L, progress);
+	
+	return 1;
+}
+
+int ProgressViewBinder::destruct(lua_State* L)
+{
+	void* ptr = *(void**)lua_touserdata(L, 1);
+	GReferenced* object = static_cast<GReferenced*>(ptr);
+	ProgressView* progress = static_cast<ProgressView*>(object->proxy());
+	
+	progress->unref();
+	
+	return 0;
+}
+
+int ProgressViewBinder::setProgressColor(lua_State* L)
+{
+    GReferenced* ProgressViewObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
+	ProgressView *progress = static_cast<ProgressView*>(ProgressViewObject->proxy());
+    
+    float r = lua_tonumber(L, -4);
+    float g = lua_tonumber(L, -3);
+    float b = lua_tonumber(L, -2);
+    float a = lua_tonumber(L, -1);
+    
+    progress->setProgressColor(r,g,b,a);
+    return 0;
+}
+
+int ProgressViewBinder::setTrackColor(lua_State* L)
+{
+    GReferenced* ProgressViewObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
+	ProgressView *progress = static_cast<ProgressView*>(ProgressViewObject->proxy());
+    
+    float r = lua_tonumber(L, -4);
+    float g = lua_tonumber(L, -3);
+    float b = lua_tonumber(L, -2);
+    float a = lua_tonumber(L, -1);
+    
+    progress->setTrackColor(r,g,b,a);
+    return 0;
+}
+
+int ProgressViewBinder::setProgress(lua_State* L)
+{
+    GReferenced* ProgressViewObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
+	ProgressView *progress = static_cast<ProgressView*>(ProgressViewObject->proxy());
+    
+    float prog = lua_tonumber(L, -2);
+    BOOL anim = lua_toboolean(L, -1);
+    
+    progress->setProgress(prog, anim);
+    return 0;
+}
+
+int ProgressViewBinder::setTrackImage(lua_State* L)
+{
+	GReferenced* ProgressViewObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
+	ProgressView *progress = static_cast<ProgressView*>(ProgressViewObject->proxy());
+	
+	const char* imagename = luaL_checkstring(L, 2);
+	
+	progress->setTrackImage([NSString stringWithUTF8String:g_pathForFile(imagename)]);
+	return 0;
+}
+
+int ProgressViewBinder::setProgressImage(lua_State* L)
+{
+	GReferenced* ProgressViewObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
+	ProgressView *progress = static_cast<ProgressView*>(ProgressViewObject->proxy());
+	
+	const char* imagename = luaL_checkstring(L, 2);
+	
+	progress->setProgressImage([NSString stringWithUTF8String:g_pathForFile(imagename)]);
+	return 0;
+}
+
+int ProgressViewBinder::getProgress(lua_State* L)
+{
+	GReferenced* ProgressViewObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
+	ProgressView *progress = static_cast<ProgressView*>(ProgressViewObject->proxy());
+    
+	lua_pushnumber(L, progress->getProgress());
+    
+	return 1;
 }
 
 //----------------------------------------------------------------------------------------------
@@ -3074,6 +3277,7 @@ static int loader(lua_State* L)
 	AlertViewBinder alertViewBinder(L);
 	SwitchBinder switchBinder(L);
     ActivityIndicatorBinder activityIndicatorBinder(L);
+    ProgressViewBinder progressViewBinder(L);
 	SliderBinder sliderBinder(L);
 	TextFieldBinder2 textFieldBinder2(L);
 	WebViewBinder webViewBinder(L);

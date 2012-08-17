@@ -8,7 +8,7 @@ The original work for this was done by Michael Hartlef. For the original code an
 
 http://www.giderosmobile.com/forum/discussion/578/uikit-plugin-example
 
-UIKit for Gideros Studio is a plugin for iOS that allows usage of UIView, UIButton, UITextField, UIAlertView, UIWebView, UIScrollView, UILabel, UISwitch, UISlider, UIToolbar, UIPickerView, UIImageView,UIActivityIndicatorView.
+UIKit for Gideros Studio is a plugin for iOS that allows usage of UIView, UIButton, UITextField, UIAlertView, UIWebView, UIScrollView, UILabel, UISwitch, UISlider, UIToolbar, UIPickerView, UIImageView,UIActivityIndicatorView, UIProgressView.
 
 Events are dispatched to Gideros Studio.
 
@@ -77,6 +77,18 @@ ActivityIndicator : View        --Thanks to @techdojo
 
 	NOTE:
 	Available types are "White", "White Large" and "Gray"
+
+ProgressView : View
+	new(string type)
+	void setProgress(float progress, bool animated) - progress is 0-1
+	void setProgressColor(float r, float g, float b, float a)
+	void setTrackColor(float r, float g, float b, float a)
+	void setProgressImage(string imagePath)
+	void setTrackImage(string imagePath)
+	float getProgress()
+
+	NOTE:
+	Available types are "Default" and "bar"
 
 AlertView : GEventDispatcherProxy
 	new(string title, string message, string button)

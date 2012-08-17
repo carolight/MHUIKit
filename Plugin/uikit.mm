@@ -1,7 +1,7 @@
-//Changes 18th March 2012 - Caroline Begbie
-//added pragma marks
-//added convenience function luaTableToArray 
-//added UITableView (WIP)
+//Changes 17th August 2012 - Giles Allensby 
+//added UIImageView
+//Enhanced UITableView
+//Enhanced UIButton
 
 #include "gideros.h"
 #include <set>
@@ -444,7 +444,7 @@ class Slider : public View
 public:
 	Slider(lua_State* L) : View(L)
 	{
-		selectorToEvent.type = @"onSliderChange";		
+		selectorToEvent.type = @"onSliderChange";
 	}
 	
 	virtual ~Slider()
@@ -452,7 +452,7 @@ public:
 		[(UISlider*)uiView removeTarget:selectorToEvent action:@selector(event:) forControlEvents:UIControlEventValueChanged];
 	}
 	
-	virtual void create(float min, float max)	
+	virtual void create(float min, float max)
 	{
 		
 		CGRect frame = CGRectMake(0.0, 0.0, 200.0, 10.0);
@@ -489,8 +489,8 @@ public:
 		[(UISlider*)uiView setThumbImage:sliderThumb forState:UIControlStateHighlighted];
 	}
 	
-
-
+    
+    
 };
 
 //----------------------------------------------------------------------------------------------
@@ -516,7 +516,7 @@ SliderBinder::SliderBinder(lua_State* L)
 		{NULL, NULL},
 	};
 	
-	g_createClass(L, "Slider", "View", create, destruct, functionlist);	
+	g_createClass(L, "Slider", "View", create, destruct, functionlist);
 }
 
 int SliderBinder::create(lua_State* L)
@@ -539,7 +539,7 @@ int SliderBinder::destruct(lua_State* L)
 	GReferenced* object = static_cast<GReferenced*>(ptr);
 	Slider* slider = static_cast<Slider*>(object->proxy());
 	
-	slider->unref(); 
+	slider->unref();
 	
 	return 0;
 }
@@ -570,7 +570,6 @@ int SliderBinder::setThumbImage(lua_State* L)
 	//slider->setThumbImage([NSString stringWithUTF8String:imagename]);
 	return 0;
 }
-
 
 //----------------------------------------------------------------------------------------------
 #pragma mark ---- UIToolbar ----
@@ -794,9 +793,26 @@ public:
 		[(UIButton*)uiView removeTarget:selectorToEvent action:@selector(event:) forControlEvents:UIControlEventTouchUpInside];
 	}
 	
-	virtual void create()	
+	virtual void create(NSString* type)	
 	{
-		UIButton* button = [UIButton buttonWithType:UIButtonTypeRoundedRect];
+        UIButton* button;
+        if ([type isEqualToString:@"Rounded Rect"]) {
+            button = [UIButton buttonWithType:UIButtonTypeRoundedRect];
+        }else if([type isEqualToString:@"Custom"]){
+            button = [UIButton buttonWithType:UIButtonTypeCustom];
+        }else if([type isEqualToString:@"Detail Disclosure"]){
+            button = [UIButton buttonWithType:UIButtonTypeDetailDisclosure];
+        }else if([type isEqualToString:@"Info Light"]){
+            button = [UIButton buttonWithType:UIButtonTypeInfoLight];
+        }else if([type isEqualToString:@"Info Dark"]){
+            button = [UIButton buttonWithType:UIButtonTypeInfoDark];
+        }else if([type isEqualToString:@"Add Contact"]){
+            button = [UIButton buttonWithType:UIButtonTypeContactAdd];
+        }else{
+            button = [UIButton buttonWithType:UIButtonTypeRoundedRect];
+        }
+        
+        
 		//button.tag = 22;
 		[button addTarget:selectorToEvent action:@selector(event:) forControlEvents:UIControlEventTouchUpInside];
 		//[[[(UIButton*)uiView ]titleLabel] font:[UIFont systemFontOfSize: 12]];
@@ -829,7 +845,6 @@ public:
 		//[[(UIButton*)uiView titleLabel] setFont:[UIFont systemFontOfSize:size]];
 		[[(UIButton*)uiView titleLabel] setFont:[UIFont fontWithName:fontname size:s]];
 		//[button.titleLabel setFont:[UIFont fontWithName:@"Arial-BoldMT" size:12]];
-
 	}
 	
 	
@@ -884,7 +899,8 @@ ButtonBinder::ButtonBinder(lua_State* L)
 int ButtonBinder::create(lua_State* L)
 {
 	Button* button = new Button(L);
-	button->create();
+    const char* type = luaL_checkstring(L, 2);
+	button->create([NSString stringWithUTF8String:type]);
 	
 	g_pushInstance(L, "Button", button->object());
 	
@@ -973,6 +989,162 @@ int ButtonBinder::setImage(lua_State* L)
 	const char* imagename = luaL_checkstring(L, 2);
 	
 	button->setImage([NSString stringWithUTF8String:g_pathForFile(imagename)]);
+	return 0;
+}
+
+//----------------------------------------------------------------------------------------------
+#pragma mark ---- UIImageView ----
+
+class ImageView : public View
+{
+public:
+	ImageView(lua_State* L) : View(L)
+	{
+	}
+	
+	virtual ~ImageView()
+	{
+	}
+	
+	virtual void create(NSString* imagefile)
+	{
+        UIImageView* imageView;
+        UIImage *img = [[[UIImage alloc] initWithContentsOfFile:imagefile] autorelease];
+        imageView = [[UIImageView alloc] initWithImage:img];
+		
+		[imageView retain];
+        
+		uiView = imageView;
+		
+	}
+	
+	void setImage(NSString* imagefile)
+	{
+		UIImage *img = [[[UIImage alloc] initWithContentsOfFile:imagefile] autorelease];
+		[(UIImageView*)uiView setImage:img];
+	}
+	
+	void setHighlightedImage(NSString* imagefile)
+	{
+		UIImage *img = [[[UIImage alloc] initWithContentsOfFile:imagefile] autorelease];
+		[(UIImageView*)uiView setHighlightedImage:img];
+	}
+    
+    void setMode(NSString* mode)
+	{
+        if ([mode isEqualToString:@"Scale To Fill"]) {
+            [(UIImageView*)uiView setContentMode:UIViewContentModeScaleToFill];
+        } else if([mode isEqualToString:@"Aspect Fit"]) {
+            [(UIImageView*)uiView setContentMode:UIViewContentModeScaleAspectFit];
+        } else if([mode isEqualToString:@"Aspect Fill"]) {
+            [(UIImageView*)uiView setContentMode:UIViewContentModeScaleAspectFill];
+        } else if([mode isEqualToString:@"Redraw"]) {
+            [(UIImageView*)uiView setContentMode:UIViewContentModeRedraw];
+        } else if([mode isEqualToString:@"Center"]) {
+            [(UIImageView*)uiView setContentMode:UIViewContentModeCenter];
+        } else if([mode isEqualToString:@"Top"]) {
+            [(UIImageView*)uiView setContentMode:UIViewContentModeTop];
+        } else if([mode isEqualToString:@"Bottom"]) {
+            [(UIImageView*)uiView setContentMode:UIViewContentModeBottom];
+        } else if([mode isEqualToString:@"Left"]) {
+            [(UIImageView*)uiView setContentMode:UIViewContentModeLeft];
+        } else if([mode isEqualToString:@"Right"]) {
+            [(UIImageView*)uiView setContentMode:UIViewContentModeRight];
+        } else if([mode isEqualToString:@"Top Left"]) {
+            [(UIImageView*)uiView setContentMode:UIViewContentModeTopLeft];
+        } else if([mode isEqualToString:@"Top Right"]) {
+            [(UIImageView*)uiView setContentMode:UIViewContentModeTopRight];
+        } else if([mode isEqualToString:@"Bottom Left"]) {
+            [(UIImageView*)uiView setContentMode:UIViewContentModeBottomLeft];
+        } else if([mode isEqualToString:@"Bottom Right"]) {
+            [(UIImageView*)uiView setContentMode:UIViewContentModeBottomRight];
+        } else {
+            [(UIImageView*)uiView setContentMode:UIViewContentModeScaleToFill];
+        }
+	}
+    
+};
+
+//----------------------------------------------------------------------------------------------
+class ImageViewBinder
+{
+public:
+	ImageViewBinder(lua_State* L);
+	
+private:
+	static int create(lua_State* L);
+	static int destruct(lua_State* L);
+	static int setImage(lua_State* L);
+	static int setHighlightedImage(lua_State* L);
+    static int setMode(lua_State* L);
+};
+
+ImageViewBinder::ImageViewBinder(lua_State* L)
+{
+	const luaL_Reg functionlist[] = {
+		{"setImage", setImage},
+		{"setHighlightedImage", setHighlightedImage},
+        {"setMode", setMode},
+		{NULL, NULL},
+	};
+	
+	g_createClass(L, "ImageView", "View", create, destruct, functionlist);
+}
+
+int ImageViewBinder::create(lua_State* L)
+{
+	ImageView* imageView = new ImageView(L);
+    const char* image = luaL_checkstring(L, 1);
+	imageView->create([NSString stringWithUTF8String:g_pathForFile(image)]);
+	
+	g_pushInstance(L, "ImageView", imageView->object());
+	
+	setObject(L, imageView);
+	
+	return 1;
+}
+
+int ImageViewBinder::destruct(lua_State* L)
+{
+	void* ptr = *(void**)lua_touserdata(L, 1);
+	GReferenced* object = static_cast<GReferenced*>(ptr);
+	ImageView* imageView = static_cast<ImageView*>(object->proxy());
+	
+	imageView->unref();
+	
+	return 0;
+}
+
+int ImageViewBinder::setHighlightedImage(lua_State* L)
+{
+	GReferenced* imageViewObject = static_cast<GReferenced*>(g_getInstance(L, "ImageView", 1));
+	ImageView* imageView = static_cast<ImageView*>(imageViewObject->proxy());
+	
+	const char* imagename = luaL_checkstring(L, 2);
+	
+	imageView->setHighlightedImage([NSString stringWithUTF8String:g_pathForFile(imagename)]);
+	return 0;
+}
+
+int ImageViewBinder::setImage(lua_State* L)
+{
+	GReferenced* imageViewObject = static_cast<GReferenced*>(g_getInstance(L, "ImageView", 1));
+	ImageView* imageView = static_cast<ImageView*>(imageViewObject->proxy());
+	
+	const char* imagename = luaL_checkstring(L, 2);
+	
+	imageView->setImage([NSString stringWithUTF8String:g_pathForFile(imagename)]);
+	return 0;
+}
+
+int ImageViewBinder::setMode(lua_State* L)
+{
+	GReferenced* imageViewObject = static_cast<GReferenced*>(g_getInstance(L, "ImageView", 1));
+	ImageView* imageView = static_cast<ImageView*>(imageViewObject->proxy());
+	
+	const char* mode = luaL_checkstring(L, 2);
+	
+	imageView->setMode([NSString stringWithUTF8String:mode]);
 	return 0;
 }
 
@@ -1367,12 +1539,19 @@ public:
         [delegate release];
 	}
 	
-	virtual void create()	
+	virtual void create(NSString *type)
 	{
-        UITableView *tableView = [[UITableView alloc] init];
+        CGRect rect = CGRectMake(0,0, 100, 100);
+        UITableView *tableView;
+        if ([type isEqualToString:@"Plain"]) {
+            tableView = [[UITableView alloc] initWithFrame:rect style:UITableViewStylePlain];
+        }else if([type isEqualToString:@"Grouped"]) {
+            tableView = [[UITableView alloc] initWithFrame:rect style:UITableViewStyleGrouped];
+        }else{
+            tableView = [[UITableView alloc] initWithFrame:rect style:UITableViewStylePlain];
+        }
         tableView.delegate = delegate;
         tableView.dataSource = delegate;
-        [tableView setBackgroundColor:[UIColor clearColor]];
 		uiView = tableView;
 	}
     
@@ -1383,9 +1562,112 @@ public:
         [tableView reloadData];
     }
     
+    void addRow(NSArray *array, int rowNum, int sectNum, NSString *animStyle)
+    {
+        delegate.dataArray = array;
+        UITableView *tableView = (UITableView *)uiView;
+        
+        NSArray *insertIndexPaths = [NSArray arrayWithObjects:
+                                     [NSIndexPath indexPathForRow:rowNum inSection:sectNum],
+                                     nil];
+        
+         [tableView beginUpdates];
+        
+        if ([animStyle isEqualToString:@"None"]) {
+            [tableView insertRowsAtIndexPaths:insertIndexPaths withRowAnimation:UITableViewRowAnimationNone];
+        }else if([animStyle isEqualToString:@"Fade"]){
+            [tableView insertRowsAtIndexPaths:insertIndexPaths withRowAnimation:UITableViewRowAnimationFade];
+        }else  if([animStyle isEqualToString:@"Right"]){
+            [tableView insertRowsAtIndexPaths:insertIndexPaths withRowAnimation:UITableViewRowAnimationRight];
+        }else if([animStyle isEqualToString:@"Left"]){
+            [tableView insertRowsAtIndexPaths:insertIndexPaths withRowAnimation:UITableViewRowAnimationLeft];
+        }else if([animStyle isEqualToString:@"Top"]){
+            [tableView insertRowsAtIndexPaths:insertIndexPaths withRowAnimation:UITableViewRowAnimationTop];
+        }else if([animStyle isEqualToString:@"Bottom"]){
+            [tableView insertRowsAtIndexPaths:insertIndexPaths withRowAnimation:UITableViewRowAnimationBottom];
+        }else if([animStyle isEqualToString:@"Middle"]){
+            [tableView insertRowsAtIndexPaths:insertIndexPaths withRowAnimation:UITableViewRowAnimationMiddle];
+        }else{
+            [tableView insertRowsAtIndexPaths:insertIndexPaths withRowAnimation:UITableViewRowAnimationNone];    
+        }
+        
+        [tableView endUpdates];
+    }
+    
+    void reloadRow(NSArray *array, int rowNum, int sectNum, NSString *animStyle)
+    {
+        delegate.dataArray = array;
+        UITableView *tableView = (UITableView *)uiView;
+        
+        NSArray *reloadIndexPaths = [NSArray arrayWithObjects:
+                                     [NSIndexPath indexPathForRow:rowNum inSection:sectNum],
+                                     nil];
+        
+        [tableView beginUpdates];
+        
+        if ([animStyle isEqualToString:@"None"]) {
+            [tableView reloadRowsAtIndexPaths:reloadIndexPaths withRowAnimation:UITableViewRowAnimationNone];
+        }else if([animStyle isEqualToString:@"Fade"]){
+            [tableView reloadRowsAtIndexPaths:reloadIndexPaths withRowAnimation:UITableViewRowAnimationFade];
+        }else  if([animStyle isEqualToString:@"Right"]){
+            [tableView reloadRowsAtIndexPaths:reloadIndexPaths withRowAnimation:UITableViewRowAnimationRight];
+        }else if([animStyle isEqualToString:@"Left"]){
+            [tableView reloadRowsAtIndexPaths:reloadIndexPaths withRowAnimation:UITableViewRowAnimationLeft];
+        }else if([animStyle isEqualToString:@"Top"]){
+            [tableView reloadRowsAtIndexPaths:reloadIndexPaths withRowAnimation:UITableViewRowAnimationTop];
+        }else if([animStyle isEqualToString:@"Bottom"]){
+            [tableView reloadRowsAtIndexPaths:reloadIndexPaths withRowAnimation:UITableViewRowAnimationBottom];
+        }else if([animStyle isEqualToString:@"Middle"]){
+            [tableView reloadRowsAtIndexPaths:reloadIndexPaths withRowAnimation:UITableViewRowAnimationMiddle];
+        }else{
+            [tableView reloadRowsAtIndexPaths:reloadIndexPaths withRowAnimation:UITableViewRowAnimationNone];
+        }
+        
+        [tableView endUpdates];
+    }
+    
+    void setbackColor(float r, float g, float b, float a)
+    {
+        UITableView *tableView = (UITableView *)uiView;
+        
+        [tableView setBackgroundColor:[UIColor colorWithRed:r green:g blue:b alpha:a]];
+    }
+    
+    void setSeperatorStyle(NSString *sepStyle)
+    {
+        UITableView *tableView = (UITableView *)uiView;
+        
+        if ([sepStyle isEqualToString:@"None"]) {
+            [tableView setSeparatorStyle:UITableViewCellSeparatorStyleNone];
+        }else if([sepStyle isEqualToString:@"Line"]){
+            [tableView setSeparatorStyle:UITableViewCellSeparatorStyleSingleLine];
+        }else if([sepStyle isEqualToString:@"Etched"]){
+            [tableView setSeparatorStyle:UITableViewCellSeparatorStyleSingleLineEtched];
+        }else{
+            [tableView setSeparatorStyle:UITableViewCellSeparatorStyleSingleLine];  
+        }
+    }
+    
+    void setSeperatorColor(float r, float g, float b, float a)
+    {
+        UITableView *tableView = (UITableView *)uiView;
+        
+        [tableView setSeparatorColor:[UIColor colorWithRed:r green:g blue:b alpha:a]];
+    }
+    
     void setCellText(NSString *text)
     {
         delegate.cellText = text;
+    }
+    
+    void toggleEditing(Boolean animated)
+    {
+        UITableView *tableView = (UITableView *)uiView;
+        if (tableView.editing) {
+            [tableView setEditing:FALSE animated:animated];
+        }else{
+            [tableView setEditing:TRUE animated:animated];
+        }
     }
     
 private:
@@ -1404,14 +1686,26 @@ private:
 	static int destruct(lua_State* L);
     
     static int setData(lua_State *L);
+    static int setbackColor(lua_State *L);
+    static int setSeperatorStyle(lua_State *L);
+    static int setSeperatorColor(lua_State *L);
+    static int addRow(lua_State *L);
+    static int reloadRow(lua_State *L);
     static int setCellText(lua_State *L);
+    static int toggleEditing(lua_State *L);
 };
 
 TableViewBinder::TableViewBinder(lua_State* L)
 {
 	const luaL_Reg functionlist[] = {
         {"setData", setData},
+        {"setbackColor", setbackColor},
+        {"setSeperatorStyle", setSeperatorStyle},
+        {"setSeperatorColor", setSeperatorColor},
+        {"addRow", addRow},
+        {"reloadRow", reloadRow},
         {"setCellText", setCellText},
+        {"toggleEditing", toggleEditing},
 		{NULL, NULL},
 	};
 	
@@ -1421,7 +1715,8 @@ TableViewBinder::TableViewBinder(lua_State* L)
 int TableViewBinder::create(lua_State* L)
 {
     TableView *tableView = new TableView(L);
-	tableView->create();
+    NSString *text = [NSString stringWithUTF8String:luaL_checkstring(L, -1)];
+	tableView->create(text);
 	
 	g_pushInstance(L, "TableView", tableView->object());
 	
@@ -1449,6 +1744,50 @@ int TableViewBinder::setData(lua_State* L)
     return 0;
 }
 
+int TableViewBinder::setbackColor(lua_State* L)
+{
+    GReferenced* tableViewObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
+	TableView *tableView = static_cast<TableView*>(tableViewObject->proxy());
+    
+    float r = lua_tonumber(L, -4);
+    float g = lua_tonumber(L, -3);
+    float b = lua_tonumber(L, -2);
+    float a = lua_tonumber(L, -1);
+    
+    tableView->setbackColor(r,g,b,a);
+    return 0;
+}
+
+int TableViewBinder::addRow(lua_State* L)
+{
+    GReferenced* tableViewObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
+	TableView *tableView = static_cast<TableView*>(tableViewObject->proxy());
+    
+    NSString *text = [NSString stringWithUTF8String:luaL_checkstring(L, -1)];
+    int sec = lua_tointeger(L, -2);
+    int ro = lua_tointeger(L, -3);
+    
+    NSArray *array = (NSArray *)lua_touserdata(L, 2);
+    
+    tableView->addRow(array,ro,sec,text);
+    return 0;
+}
+
+int TableViewBinder::reloadRow(lua_State* L)
+{
+    GReferenced* tableViewObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
+	TableView *tableView = static_cast<TableView*>(tableViewObject->proxy());
+    
+    NSString *text = [NSString stringWithUTF8String:luaL_checkstring(L, -1)];
+    int sec = lua_tointeger(L, -2);
+    int ro = lua_tointeger(L, -3);
+    
+    NSArray *array = (NSArray *)lua_touserdata(L, 2);
+    
+    tableView->reloadRow(array,ro,sec,text);
+    return 0;
+}
+
 int TableViewBinder::setCellText(lua_State *L)
 {
     GReferenced* tableViewObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
@@ -1460,6 +1799,41 @@ int TableViewBinder::setCellText(lua_State *L)
     return 0;
 }
 
+int TableViewBinder::setSeperatorStyle(lua_State *L)
+{
+    GReferenced* tableViewObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
+	TableView *tableView = static_cast<TableView*>(tableViewObject->proxy());
+    
+    //pop the text value from the stack
+    NSString *text = [NSString stringWithUTF8String:luaL_checkstring(L, -1)];
+    tableView->setSeperatorStyle(text);
+    return 0;
+}
+
+int TableViewBinder::setSeperatorColor(lua_State* L)
+{
+    GReferenced* tableViewObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
+	TableView *tableView = static_cast<TableView*>(tableViewObject->proxy());
+    
+    float r = lua_tonumber(L, -4);
+    float g = lua_tonumber(L, -3);
+    float b = lua_tonumber(L, -2);
+    float a = lua_tonumber(L, -1);
+    
+    tableView->setSeperatorColor(r,g,b,a);
+    return 0;
+}
+
+int TableViewBinder::toggleEditing(lua_State* L)
+{
+    GReferenced* tableViewObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
+	TableView *tableView = static_cast<TableView*>(tableViewObject->proxy());
+    
+    Boolean anim = lua_toboolean(L, -1);
+    
+    tableView->toggleEditing(anim);
+    return 0;
+}
 
 //----------------------------------------------------------------------------------------------
 #pragma mark ---- UIWebView ----
@@ -1809,7 +2183,7 @@ public:
         lua_pushnil(L);
         
         if (lua_isnil(L, 1)) {
-        
+            
             [rowNames addObject:@"Error! - No Table"];
             return;
             
@@ -2593,6 +2967,7 @@ static int loader(lua_State* L)
 {
 	ViewBinder viewBinder(L);
 	ButtonBinder buttonBinder(L);
+    ImageViewBinder imageViewBinder(L);
 	LabelBinder labelBinder(L);
 	AlertViewBinder alertViewBinder(L);
 	SwitchBinder switchBinder(L);

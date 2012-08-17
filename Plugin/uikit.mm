@@ -1,5 +1,6 @@
 //Changes 17th August 2012 - Giles Allensby 
 //added UIImageView
+//added UIActivityIndicatorView Thanks to @techdojo
 //Enhanced UITableView
 //Enhanced UIButton
 
@@ -434,6 +435,108 @@ int SwitchBinder::getState(lua_State* L)
 	Switch* iswitch = static_cast<Switch*>(switchObject->proxy());
 	lua_pushboolean(L, iswitch->getState());
 	return 1;
+}
+
+//----------------------------------------------------------------------------------------------
+#pragma mark ---- UIActivityIndicatorView ----
+
+class ActivityIndicator : public View
+{
+public:
+	ActivityIndicator(lua_State* L) : View(L)
+	{
+	}
+	
+	virtual ~ActivityIndicator()
+	{
+	}
+	
+	virtual void create(NSString* style)
+	{
+        UIActivityIndicatorView* activity;
+        if ([style isEqualToString:@"White"]) {
+            activity = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
+        } else if([style isEqualToString:@"White Large"]){
+            activity = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
+        } else if([style isEqualToString:@"Gray"]){
+            activity = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray];
+        } else {
+            activity = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
+        }
+        
+        [activity startAnimating];
+		[activity retain];
+		
+		uiView = activity;
+	}
+    
+    void setColor(float r, float g, float b, float a)
+    {
+        UIActivityIndicatorView *activity = (UIActivityIndicatorView *)uiView;
+        
+        [activity setColor:[UIColor colorWithRed:r green:g blue:b alpha:a]];
+    }
+	
+};
+
+//----------------------------------------------------------------------------------------------
+class ActivityIndicatorBinder
+{
+public:
+	ActivityIndicatorBinder(lua_State* L);
+	
+private:
+	static int create(lua_State* L);
+	static int destruct(lua_State* L);
+    static int setColor(lua_State* L);
+};
+
+ActivityIndicatorBinder::ActivityIndicatorBinder(lua_State* L)
+{
+	const luaL_Reg functionlist[] = {
+        {"setColor", setColor},
+		{NULL, NULL},
+	};
+	
+	g_createClass(L, "ActivityIndicator", "View", create, destruct, functionlist);
+}
+
+int ActivityIndicatorBinder::create(lua_State* L)
+{
+	ActivityIndicator* activity = new ActivityIndicator(L);
+    const char* type = luaL_checkstring(L, 1);
+	activity->create([NSString stringWithUTF8String:type]);
+	
+	g_pushInstance(L, "ActivityIndicator", activity->object());
+	
+	setObject(L, activity);
+	
+	return 1;
+}
+
+int ActivityIndicatorBinder::destruct(lua_State* L)
+{
+	void* ptr = *(void**)lua_touserdata(L, 1);
+	GReferenced* object = static_cast<GReferenced*>(ptr);
+	ActivityIndicator* activity = static_cast<ActivityIndicator*>(object->proxy());
+	
+	activity->unref();
+	
+	return 0;
+}
+
+int ActivityIndicatorBinder::setColor(lua_State* L)
+{
+    GReferenced* activityIndicatorObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
+	ActivityIndicator *activity = static_cast<ActivityIndicator*>(activityIndicatorObject->proxy());
+    
+    float r = lua_tonumber(L, -4);
+    float g = lua_tonumber(L, -3);
+    float b = lua_tonumber(L, -2);
+    float a = lua_tonumber(L, -1);
+    
+    activity->setColor(r,g,b,a);
+    return 0;
 }
 
 //----------------------------------------------------------------------------------------------
@@ -2068,7 +2171,6 @@ int WebViewBinder::loadLocalFile(lua_State* L)
 //------- UIWebView ends here -------------//
 //-------------------------------------------//
 
-
 //----------------------------------------------------------------------------------------------
 #pragma mark ---- UIPickerView ----
 
@@ -2971,6 +3073,7 @@ static int loader(lua_State* L)
 	LabelBinder labelBinder(L);
 	AlertViewBinder alertViewBinder(L);
 	SwitchBinder switchBinder(L);
+    ActivityIndicatorBinder activityIndicatorBinder(L);
 	SliderBinder sliderBinder(L);
 	TextFieldBinder2 textFieldBinder2(L);
 	WebViewBinder webViewBinder(L);

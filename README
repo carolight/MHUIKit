@@ -1,4 +1,5 @@
 Modified 17th August Giles Allensby
+UIActivityIndicatorView Thanks to @techdojo
 
 ***** UIKit for Gideros Studio ****
 **********************************
@@ -7,7 +8,7 @@ The original work for this was done by Michael Hartlef. For the original code an
 
 http://www.giderosmobile.com/forum/discussion/578/uikit-plugin-example
 
-UIKit for Gideros Studio is a plugin for iOS that allows usage of UIView, UIButton, UITextField, UIAlertView, UIWebView, UIScrollView, UILabel, UISwitch, UISlider, UIToolbar, UIPickerView.
+UIKit for Gideros Studio is a plugin for iOS that allows usage of UIView, UIButton, UITextField, UIAlertView, UIWebView, UIScrollView, UILabel, UISwitch, UISlider, UIToolbar, UIPickerView, UIImageView,UIActivityIndicatorView.
 
 Events are dispatched to Gideros Studio.
 
@@ -69,6 +70,13 @@ ImageView : View
 
 	NOTE:
 	Available Modes are "Scale To Fill", "Aspect Fit", "Aspect Fill", "Redraw", "Center", "Top", "Bottom", "Left", "Right", "Top Left", "Top Right", "Bottom Left" and "Bottom Right"
+
+ActivityIndicator : View        --Thanks to @techdojo
+	new(string type)
+	void setColor(float r, float g, float b, float a)
+
+	NOTE:
+	Available types are "White", "White Large" and "Gray"
 
 AlertView : GEventDispatcherProxy
 	new(string title, string message, string button)

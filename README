@@ -1,3 +1,6 @@
+Modified 17th August Giles Allensby
+UIActivityIndicatorView Thanks to @techdojo
+
 ***** UIKit for Gideros Studio ****
 **********************************
 
@@ -5,7 +8,7 @@ The original work for this was done by Michael Hartlef. For the original code an
 
 http://www.giderosmobile.com/forum/discussion/578/uikit-plugin-example
 
-UIKit for Gideros Studio is a plugin for iOS that allows usage of UIView, UIButton, UITextField, UIAlertView, UIWebView, UIScrollView, UILabel, UISwitch, UISlider, UIToolbar, UIPickerView.
+UIKit for Gideros Studio is a plugin for iOS that allows usage of UIView, UIButton, UITextField, UIAlertView, UIWebView, UIScrollView, UILabel, UISwitch, UISlider, UIToolbar, UIPickerView, UIImageView,UIActivityIndicatorView, UIProgressView.
 
 Events are dispatched to Gideros Studio.
 
@@ -39,7 +42,7 @@ View : GEventDispatcherProxy
 	void setSize(int width, int height)
 
 Button : View
-	new()
+	new(string type)
 	void setTitle(string title)
 	void setTitleColor(float r, float g, float b)
 	void setBGColor(float r, float g, float b)
@@ -49,12 +52,43 @@ Button : View
 
 	Generated event: "onButtonClick"
 
+	NOTE:
+	Available Button Types are "Rounded Rect", "Custom", "Detail Disclosure", "Info Light", "Info Dark" and "Add Contact"
+
 Label : View
 	new()	
 	void setText(string text)
 	void setTextColor(float r, float g, float b)
 	void setBGColor(float r, float g, float b)
 	void setFont(string fontname, float s)
+
+ImageView : View
+	new(string imagefile)
+	void setImage(string imagefile)
+	void setHighlightedImage(string imagefile)
+	void setMode(string mode)
+
+	NOTE:
+	Available Modes are "Scale To Fill", "Aspect Fit", "Aspect Fill", "Redraw", "Center", "Top", "Bottom", "Left", "Right", "Top Left", "Top Right", "Bottom Left" and "Bottom Right"
+
+ActivityIndicator : View        --Thanks to @techdojo
+	new(string type)
+	void setColor(float r, float g, float b, float a)
+
+	NOTE:
+	Available types are "White", "White Large" and "Gray"
+
+ProgressView : View
+	new(string type)
+	void setProgress(float progress, bool animated) - progress is 0-1
+	void setProgressColor(float r, float g, float b, float a)
+	void setTrackColor(float r, float g, float b, float a)
+	void setProgressImage(string imagePath)
+	void setTrackImage(string imagePath)
+	float getProgress()
+
+	NOTE:
+	Available types are "Default" and "bar"
 
 AlertView : GEventDispatcherProxy
 	new(string title, string message, string button)
@@ -120,12 +154,26 @@ ScrollView : View
 	Generated event: onScrollViewClick
 
 TableView : View
-	new()
+	new(string Type)
 	void setData(NSArray data) -- use luaTableToArray()
 	void setCellText(string text)
+
+	void setbackColor(float r, float g, float b, float a)
+    void setSeperatorStyle(string style)
+    void setSeperatorColor(float r, float g, float b, float a)
+    void addRow(NSArray data, int rowNum, int sectNum, String animStyle) -- use luaTableToArray()
+    void reloadRow(NSArray data, int rowNum, int sectNum, String animStyle) -- use luaTableToArray()
+    void toggleEditing(Boolean animated)
+
 	setPosition(x, y)
 	setSize(width, height)
 
 	Generated events: "cellForRowAtIndexPath", "didSelectRowAtIndexPath"
 	event table includes the additional field: "Row" (event.Row)
+
+	NOTE:
+	Available Table Types are "Plain" and "Grouped"
+	Available Row Animations are "None", "Fade", "Right", "Left", "Top", "Bottom" and "Middle"
+	Available Seperator Styles are "None", "Line" and "Etched"
+
 

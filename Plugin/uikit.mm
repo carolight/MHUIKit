@@ -1372,6 +1372,7 @@ public:
         UITableView *tableView = [[UITableView alloc] init];
         tableView.delegate = delegate;
         tableView.dataSource = delegate;
+        [tableView setBackgroundColor:[UIColor clearColor]];
 		uiView = tableView;
 	}
     

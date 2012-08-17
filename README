@@ -1,3 +1,5 @@
+Modified 17th August Giles Allensby
+
 ***** UIKit for Gideros Studio ****
 **********************************
 
@@ -39,7 +41,7 @@ View : GEventDispatcherProxy
 	void setSize(int width, int height)
 
 Button : View
-	new()
+	new(string type)
 	void setTitle(string title)
 	void setTitleColor(float r, float g, float b)
 	void setBGColor(float r, float g, float b)
@@ -49,12 +51,24 @@ Button : View
 
 	Generated event: "onButtonClick"
 
+	NOTE:
+	Available Button Types are "Rounded Rect", "Custom", "Detail Disclosure", "Info Light", "Info Dark" and "Add Contact"
+
 Label : View
 	new()	
 	void setText(string text)
 	void setTextColor(float r, float g, float b)
 	void setBGColor(float r, float g, float b)
 	void setFont(string fontname, float s)
+
+ImageView : View
+	new(string imagefile)
+	void setImage(string imagefile)
+	void setHighlightedImage(string imagefile)
+	void setMode(string mode)
+
+	NOTE:
+	Available Modes are "Scale To Fill", "Aspect Fit", "Aspect Fill", "Redraw", "Center", "Top", "Bottom", "Left", "Right", "Top Left", "Top Right", "Bottom Left" and "Bottom Right"
 
 AlertView : GEventDispatcherProxy
 	new(string title, string message, string button)
@@ -120,12 +134,26 @@ ScrollView : View
 	Generated event: onScrollViewClick
 
 TableView : View
-	new()
+	new(string Type)
 	void setData(NSArray data) -- use luaTableToArray()
 	void setCellText(string text)
+
+	void setbackColor(float r, float g, float b, float a)
+    void setSeperatorStyle(string style)
+    void setSeperatorColor(float r, float g, float b, float a)
+    void addRow(NSArray data, int rowNum, int sectNum, String animStyle) -- use luaTableToArray()
+    void reloadRow(NSArray data, int rowNum, int sectNum, String animStyle) -- use luaTableToArray()
+    void toggleEditing(Boolean animated)
+
 	setPosition(x, y)
 	setSize(width, height)
 
 	Generated events: "cellForRowAtIndexPath", "didSelectRowAtIndexPath"
 	event table includes the additional field: "Row" (event.Row)
+
+	NOTE:
+	Available Table Types are "Plain" and "Grouped"
+	Available Row Animations are "None", "Fade", "Right", "Left", "Top", "Bottom" and "Middle"
+	Available Seperator Styles are "None", "Line" and "Etched"
+
 

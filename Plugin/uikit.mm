@@ -1633,7 +1633,7 @@ public:
         [tableView setBackgroundColor:[UIColor colorWithRed:r green:g blue:b alpha:a]];
     }
     
-    void setSeperatorStyle(NSString *sepStyle)
+    void setSeparatorStyle(NSString *sepStyle)
     {
         UITableView *tableView = (UITableView *)uiView;
         
@@ -1648,7 +1648,7 @@ public:
         }
     }
     
-    void setSeperatorColor(float r, float g, float b, float a)
+    void setSeparatorColor(float r, float g, float b, float a)
     {
         UITableView *tableView = (UITableView *)uiView;
         
@@ -1687,8 +1687,8 @@ private:
     
     static int setData(lua_State *L);
     static int setbackColor(lua_State *L);
-    static int setSeperatorStyle(lua_State *L);
-    static int setSeperatorColor(lua_State *L);
+    static int setSeparatorStyle(lua_State *L);
+    static int setSeparatorColor(lua_State *L);
     static int addRow(lua_State *L);
     static int reloadRow(lua_State *L);
     static int setCellText(lua_State *L);
@@ -1700,8 +1700,8 @@ TableViewBinder::TableViewBinder(lua_State* L)
 	const luaL_Reg functionlist[] = {
         {"setData", setData},
         {"setbackColor", setbackColor},
-        {"setSeperatorStyle", setSeperatorStyle},
-        {"setSeperatorColor", setSeperatorColor},
+        {"setSeparatorStyle", setSeparatorStyle},
+        {"setSeparatorColor", setSeparatorColor},
         {"addRow", addRow},
         {"reloadRow", reloadRow},
         {"setCellText", setCellText},
@@ -1799,18 +1799,18 @@ int TableViewBinder::setCellText(lua_State *L)
     return 0;
 }
 
-int TableViewBinder::setSeperatorStyle(lua_State *L)
+int TableViewBinder::setSeparatorStyle(lua_State *L)
 {
     GReferenced* tableViewObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
 	TableView *tableView = static_cast<TableView*>(tableViewObject->proxy());
     
     //pop the text value from the stack
     NSString *text = [NSString stringWithUTF8String:luaL_checkstring(L, -1)];
-    tableView->setSeperatorStyle(text);
+    tableView->setSeparatorStyle(text);
     return 0;
 }
 
-int TableViewBinder::setSeperatorColor(lua_State* L)
+int TableViewBinder::setSeparatorColor(lua_State* L)
 {
     GReferenced* tableViewObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
 	TableView *tableView = static_cast<TableView*>(tableViewObject->proxy());
@@ -1820,7 +1820,7 @@ int TableViewBinder::setSeperatorColor(lua_State* L)
     float b = lua_tonumber(L, -2);
     float a = lua_tonumber(L, -1);
     
-    tableView->setSeperatorColor(r,g,b,a);
+    tableView->setSeparatorColor(r,g,b,a);
     return 0;
 }
 

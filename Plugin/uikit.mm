@@ -899,7 +899,7 @@ ButtonBinder::ButtonBinder(lua_State* L)
 int ButtonBinder::create(lua_State* L)
 {
 	Button* button = new Button(L);
-    const char* type = luaL_checkstring(L, 2);
+    const char* type = luaL_checkstring(L, 1);
 	button->create([NSString stringWithUTF8String:type]);
 	
 	g_pushInstance(L, "Button", button->object());

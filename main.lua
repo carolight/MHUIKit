@@ -98,12 +98,13 @@ end
 local label = Label.new()
 
 
-label:setPosition(10, 150)
+label:setPosition(10, 160)
 label:setSize(300, 30)
 
 label:setText("This is a label")
 label:setTextColor(1,0,0)
 label:setBGColor(1,1,0)
+label:setFont("Helvetica-Bold", 18)
 if useScrollView==true then
 	scrollView:add(label)
 else
@@ -227,3 +228,25 @@ toolbar:addEventListener("onToolbarClick",toolbar.onClick,toolbar)
 stage:addEventListener(Event.ENTER_FRAME, function(event)
 	collectgarbage()
 	end)
+
+--********** Create an ImageView ************
+
+local imageView = ImageView.new("giderosIcon.png")
+imageView:setSize(30,30)
+imageView:setPosition(10,25)
+if useScrollView==true then
+	scrollView:add(imageView)
+else
+	addToRootView(imageView)
+end
+
+
+--********** Create an ActivityIndicator ************
+local activityIndicator = ActivityIndicator.new("Gray")
+activityIndicator:setPosition(290,30)
+if useScrollView==true then
+	scrollView:add(activityIndicator)
+else
+	addToRootView(activityIndicator)
+end
+

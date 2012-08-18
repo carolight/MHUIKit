@@ -1205,8 +1205,14 @@ ButtonBinder::ButtonBinder(lua_State* L)
 int ButtonBinder::create(lua_State* L)
 {
 	Button* button = new Button(L);
-    const char* type = luaL_checkstring(L, 1);
-	button->create([NSString stringWithUTF8String:type]);
+    
+    int noOfArguments = lua_gettop(L);
+    const char* type = nil;
+    if(noOfArguments < 1)
+        type = "Rounded Rect";
+    else
+        type = luaL_checkstring(L, 1);
+    button->create([NSString stringWithUTF8String:type]);
 	
 	g_pushInstance(L, "Button", button->object());
 	

@@ -111,6 +111,7 @@ else
 	addToRootView(label)
 end
 local show = false
+
 --********** Create a alert view ************
 
 alertView = AlertView.new("A simple alert view :-)", "Up to 5 button!!!", "Button1")
@@ -239,6 +240,7 @@ if useScrollView==true then
 else
 	addToRootView(imageView)
 end
+imageView:setRotation(65)
 
 
 --********** Create an ActivityIndicator ************

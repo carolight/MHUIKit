@@ -229,6 +229,12 @@ public:
 		frame.size.height = height;
 		uiView.frame = frame;			
 	}
+    
+    void setRotation(float angle)
+    {
+        uiView.transform = CGAffineTransformMakeRotation(angle * M_PI / 180);
+    }
+    
 	
 	UIView* uiView;
 	SelectorToEvent* selectorToEvent;
@@ -248,6 +254,7 @@ private:
 	static int removeFromParent(lua_State* L);
 	static int setPosition(lua_State* L);
 	static int setSize(lua_State* L);
+    static int setRotation(lua_State* L);
 };
 
 ViewBinder::ViewBinder(lua_State* L)
@@ -257,6 +264,7 @@ ViewBinder::ViewBinder(lua_State* L)
 		//{"removeFromParent", removeFromParent},
 		{"setPosition", setPosition},
 		{"setSize", setSize},
+        {"setRotation", setRotation},
 		{NULL, NULL},
 	};
 	
@@ -333,6 +341,18 @@ int ViewBinder::setSize(lua_State* L)
 	
 	return 0;	
 }
+
+int ViewBinder::setRotation(lua_State* L)
+{
+    GReferenced* viewObject = static_cast<GReferenced*>(g_getInstance(L, "View", 1));
+    View* view = static_cast<View*>(viewObject->proxy());
+    
+    float rot = luaL_checknumber(L, 2);
+    view->setRotation(rot);
+    
+    return 0;
+}
+
 
 //----------------------------------------------------------------------------------------------
 #pragma mark ---- UISwitch ----

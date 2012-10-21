@@ -30,7 +30,7 @@ local newTable = {"dog", "cat", "bird", "zebra", "finch", "antelope", "giraffe",
 --convert lua table to an NSArray
 local holdArray = luaTableToArray(newTable)
 
-local tableView = TableView.new("Plain")
+local tableView = TableView.new()
 
 tableView:setPosition(30,20)
 tableView:setSize(250, 300)

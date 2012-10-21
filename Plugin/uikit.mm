@@ -22,7 +22,7 @@ static void createObjectsTable(lua_State* L)
 	lua_setfield(L, -2, "__mode");    // set as weak-value table
 	lua_pushvalue(L, -1);             // duplicate table
 	lua_setmetatable(L, -2);          // set itself as metatable
-	lua_rawset(L, LUA_REGISTRYINDEX);
+	lua_rawset(L, LUA_REGISTRYINDEX);	
 }
 
 static void createRootObjectsTable(lua_State* L)
@@ -230,6 +230,10 @@ public:
 		uiView.frame = frame;			
 	}
     
+    void setRotation(float angle)
+    {
+        uiView.transform = CGAffineTransformMakeRotation(angle * M_PI / 180);
+    }
     void setAlpha(float alpha)
 	{
 		uiView.alpha = alpha;
@@ -292,6 +296,7 @@ private:
 	static int removeFromParent(lua_State* L);
 	static int setPosition(lua_State* L);
 	static int setSize(lua_State* L);
+    static int setRotation(lua_State* L);
     static int setAlpha(lua_State* L);
     static int animateNow(lua_State* L);
 };
@@ -303,6 +308,7 @@ ViewBinder::ViewBinder(lua_State* L)
 		//{"removeFromParent", removeFromParent},
 		{"setPosition", setPosition},
 		{"setSize", setSize},
+        {"setRotation", setRotation},
         {"setAlpha", setAlpha},
         {"animateNow", animateNow},
 		{NULL, NULL},
@@ -393,6 +399,17 @@ int ViewBinder::setSize(lua_State* L)
 	return 0;	
 }
 
+int ViewBinder::setRotation(lua_State* L)
+{
+    GReferenced* viewObject = static_cast<GReferenced*>(g_getInstance(L, "View", 1));
+    View* view = static_cast<View*>(viewObject->proxy());
+    
+    float rot = luaL_checknumber(L, 2);
+    view->setRotation(rot);
+    
+    return 0;
+}
+    
 int ViewBinder::animateNow(lua_State* L)
 {
 	GReferenced* viewObject = static_cast<GReferenced*>(g_getInstance(L, "View", 1));
@@ -409,6 +426,7 @@ int ViewBinder::animateNow(lua_State* L)
 	
 	return 0;
 }
+
 
 //----------------------------------------------------------------------------------------------
 #pragma mark ---- UISwitch ----
@@ -1281,8 +1299,14 @@ ButtonBinder::ButtonBinder(lua_State* L)
 int ButtonBinder::create(lua_State* L)
 {
 	Button* button = new Button(L);
-    const char* type = luaL_checkstring(L, 1);
-	button->create([NSString stringWithUTF8String:type]);
+    
+    int noOfArguments = lua_gettop(L);
+    const char* type = nil;
+    if(noOfArguments < 1)
+        type = "Rounded Rect";
+    else
+        type = luaL_checkstring(L, 1);
+    button->create([NSString stringWithUTF8String:type]);
 	
 	g_pushInstance(L, "Button", button->object());
 	
@@ -1689,6 +1713,8 @@ public:
 		[(UILabel*)uiView setBackgroundColor:color];
 	}
 	
+	
+		
 	void setFont(NSString* fontname, CGFloat s)
 	{
 		[(UILabel*)uiView setFont:[UIFont fontWithName:fontname size:s]];
@@ -2252,7 +2278,13 @@ TableViewBinder::TableViewBinder(lua_State* L)
 int TableViewBinder::create(lua_State* L)
 {
     TableView *tableView = new TableView(L);
-    NSString *text = [NSString stringWithUTF8String:luaL_checkstring(L, -1)];
+    
+    int noOfArguments = lua_gettop(L);
+    NSString* text = nil;
+    if(noOfArguments < 1)
+        text = @"Plain";
+    else
+        text = [NSString stringWithUTF8String:luaL_checkstring(L, -1)];
 	tableView->create(text);
 	
 	g_pushInstance(L, "TableView", tableView->object());
@@ -3002,7 +3034,7 @@ int PickerViewBinder::showSelectionIndicator(lua_State* L)
 @property (nonatomic, assign) lua_State* L;
 
 - (BOOL)textFieldShouldReturn:(UITextField *)textField;
-    
+
 @end
 
 @implementation UITextFieldDelegate
@@ -3074,7 +3106,7 @@ int PickerViewBinder::showSelectionIndicator(lua_State* L)
 		}
 	}
 	
-	lua_pop(L, 1);
+	lua_pop(L, 1);	
 	
 	//NSLog(@"TextField textFieldShouldEndEditing");
 	
@@ -3197,6 +3229,7 @@ public:
 	virtual void setText(NSString* text)	
 	{
 		textField.text = text;
+		
 	}
     
     virtual void setKeyboardType(NSString* type)
@@ -3518,7 +3551,6 @@ int TextFieldBinder2::hideKeyboard(lua_State* L)
     return 1;
 }
 
-
 //-------------------------------------------//
 //------- UITextField ends here -------------//
 //-------------------------------------------//
@@ -3752,7 +3784,7 @@ static int removeFromRootView(lua_State* L)
 	if (uiView.superview == rootView)
 	{
 		[uiView removeFromSuperview];
-		[uiView autorelease];
+		
 		topUIViews.erase(uiView);
 
 		lua_pushlightuserdata(L, (void *)&KEY_ROOTOBJECTS);

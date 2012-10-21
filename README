@@ -40,6 +40,12 @@ View : GEventDispatcherProxy
 	void removeFromParent()
 	void setPosition(int x, int y)
 	void setSize(int width, int height)
+	void setAlpha(float alpha)
+	void setRotation(float angle)
+	void animateNow(int x, int y, int width, int height, float duration, float delay, String animType)
+
+	NOTE:
+	Available anim Types are "Linear", "EaseIn", "EaseInOut" and "EaseOut"
 
 Button : View
 	new(string type)
@@ -61,6 +67,10 @@ Label : View
 	void setTextColor(float r, float g, float b)
 	void setBGColor(float r, float g, float b)
 	void setFont(string fontname, float s)
+	void setTextAlignment(string alignment)
+
+	NOTE:
+	Available alignments are "Left", "Center", "Right", "Natural" and "Justified"
 
 ImageView : View
 	new(string imagefile)
@@ -70,7 +80,7 @@ ImageView : View
 
 	NOTE:
 	Available Modes are "Scale To Fill", "Aspect Fit", "Aspect Fill", "Redraw", "Center", "Top", "Bottom", "Left", "Right", "Top Left", "Top Right", "Bottom Left" and "Bottom Right"
-
+	
 ActivityIndicator : View        --Thanks to @techdojo
 	new(string type)
 	void setColor(float r, float g, float b, float a)
@@ -119,8 +129,23 @@ TextField2 : View
 	void setTextColor(float r, float g, float b)
 	void setBGColor(float r, float g, float b)
 	void showKeyboard()
+	void hideKeyboard()
+	void setReturnKeyType(string type)
+	void setBorderStyle(string style)
+	void setKeyboardType(string type)
+	void setClearButton(string type)
+	void setKeyboardAppearance(string style)
+	void setTextAlign(string align)
 
 	Generated events: "onTextFieldEdit", "onTextFieldReturn"
+
+	NOTE:
+	Available Return Key Types are "Done", "Emergency Call", "Go", "Google", "Join", "Next", "Route", "Search", "Send" and "Yahoo"
+	Available Border Styles are "Bezel", "Line", "None" and "Rounded Rect"
+	Available Keyboard Types are "Default", "Alphabet", "ASCIICapable", "Decimal Pad", "Email Address", "Name Phone Pad", "Number Pad", "Numbers and Punctuation", "Phone Pad", "Twitter" and "URL"
+	Available Clear Button Types are "While Editing", "Unless Editing", "Never" and "Always"
+	Available Keyboard Appearance Styles are "Default" and "Alert"
+	Available Text Alignments are "Left", "Center", "Right", "Natural" and "Justified"
 
 WebView : View
 	new(string url)
@@ -133,7 +158,8 @@ PickerView : View
 	virtual int getRowCount()	
 	virtual void setRow(int row)	
 	virtual int getPickedRow()	
-	virtual string getPickedItem()	
+	virtual string getPickedItem()
+	void showSelectionIndicator(BOOL show)
 
 	Generated event: "onPickerRows"
 
@@ -159,11 +185,15 @@ TableView : View
 	void setCellText(string text)
 
 	void setbackColor(float r, float g, float b, float a)
-    void setSeperatorStyle(string style)
-    void setSeperatorColor(float r, float g, float b, float a)
-    void addRow(NSArray data, int rowNum, int sectNum, String animStyle) -- use luaTableToArray()
-    void reloadRow(NSArray data, int rowNum, int sectNum, String animStyle) -- use luaTableToArray()
-    void toggleEditing(Boolean animated)
+	void setSeperatorStyle(string style)
+	void setSeperatorColor(float r, float g, float b, float a)
+	void addRow(NSArray data, int rowNum, int sectNum, String animStyle) -- use luaTableToArray()
+	void reloadRow(NSArray data, int rowNum, int sectNum, String animStyle) -- use luaTableToArray()
+	void toggleEditing(Boolean animated)
+	
+	void removeRow(int rowNum, int sectNum, string animStyle)
+	void setAccessoryType(string accessoryType)
+	void deselectRow(int rowNum, int sectNum, BOOL anim)
 
 	setPosition(x, y)
 	setSize(width, height)
@@ -175,5 +205,6 @@ TableView : View
 	Available Table Types are "Plain" and "Grouped"
 	Available Row Animations are "None", "Fade", "Right", "Left", "Top", "Bottom" and "Middle"
 	Available Seperator Styles are "None", "Line" and "Etched"
+	Available Accessory Types are "None", "DisclosureIndicator", "DetailDisclosureButton" and "Checkmark"
 
 

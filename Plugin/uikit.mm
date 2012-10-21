@@ -22,7 +22,7 @@ static void createObjectsTable(lua_State* L)
 	lua_setfield(L, -2, "__mode");    // set as weak-value table
 	lua_pushvalue(L, -1);             // duplicate table
 	lua_setmetatable(L, -2);          // set itself as metatable
-	lua_rawset(L, LUA_REGISTRYINDEX);	
+	lua_rawset(L, LUA_REGISTRYINDEX);
 }
 
 static void createRootObjectsTable(lua_State* L)
@@ -229,6 +229,50 @@ public:
 		frame.size.height = height;
 		uiView.frame = frame;			
 	}
+    
+    void setAlpha(float alpha)
+	{
+		uiView.alpha = alpha;
+	}
+    
+    void animateNow(int x, int y, int wid, int hei, float duration, float delay, NSString* animType)
+	{
+        duration = duration/1000;
+        delay = delay/1000;
+        
+        UIViewAnimationCurve animCurve;
+        if ([animType isEqualToString:@"Linear"]) {
+            animCurve = UIViewAnimationCurveLinear;
+        } else if ([animType isEqualToString:@"EaseIn"]) {
+            animCurve = UIViewAnimationCurveEaseIn;
+        } else if ([animType isEqualToString:@"EaseInOut"]) {
+            animCurve = UIViewAnimationCurveEaseInOut;
+        } else if ([animType isEqualToString:@"EaseOut"]) {
+            animCurve = UIViewAnimationCurveEaseOut;
+        } else {
+           animCurve = UIViewAnimationCurveLinear; 
+        }
+        
+		CGRect frame = uiView.frame;
+		frame.origin.x = x;
+		frame.origin.y = y;
+        
+        if (wid) {
+            frame.size.width = wid;
+        }
+        if (hei) {
+            frame.size.height = hei;
+        }
+        
+        [UIView beginAnimations:nil context:nil];
+        [UIView setAnimationDuration:duration];
+        [UIView setAnimationDelay:delay];
+        [UIView setAnimationCurve:animCurve];
+        
+            uiView.frame = frame;
+        
+        [UIView commitAnimations];
+	}
 	
 	UIView* uiView;
 	SelectorToEvent* selectorToEvent;
@@ -248,6 +292,8 @@ private:
 	static int removeFromParent(lua_State* L);
 	static int setPosition(lua_State* L);
 	static int setSize(lua_State* L);
+    static int setAlpha(lua_State* L);
+    static int animateNow(lua_State* L);
 };
 
 ViewBinder::ViewBinder(lua_State* L)
@@ -257,6 +303,8 @@ ViewBinder::ViewBinder(lua_State* L)
 		//{"removeFromParent", removeFromParent},
 		{"setPosition", setPosition},
 		{"setSize", setSize},
+        {"setAlpha", setAlpha},
+        {"animateNow", animateNow},
 		{NULL, NULL},
 	};
 	
@@ -322,6 +370,17 @@ int ViewBinder::setPosition(lua_State* L)
 	return 0;
 }
 
+int ViewBinder::setAlpha(lua_State* L)
+{
+	GReferenced* viewObject = static_cast<GReferenced*>(g_getInstance(L, "View", 1));
+	View* view = static_cast<View*>(viewObject->proxy());
+	
+	float alpha = luaL_checknumber(L, 2);
+	view->setAlpha(alpha);
+	
+	return 0;
+}
+
 int ViewBinder::setSize(lua_State* L)
 {
 	GReferenced* viewObject = static_cast<GReferenced*>(g_getInstance(L, "View", 1));
@@ -332,6 +391,23 @@ int ViewBinder::setSize(lua_State* L)
 	view->setSize(width, height);
 	
 	return 0;	
+}
+
+int ViewBinder::animateNow(lua_State* L)
+{
+	GReferenced* viewObject = static_cast<GReferenced*>(g_getInstance(L, "View", 1));
+	View* view = static_cast<View*>(viewObject->proxy());
+	
+	int x = luaL_checkinteger(L, 2);
+	int y = luaL_checkinteger(L, 3);
+    int width = luaL_checkinteger(L, 4);
+	int height = luaL_checkinteger(L, 5);
+    int duration = luaL_checkinteger(L, 6);
+	int delay = luaL_checkinteger(L, 7);
+    const char* animType = luaL_checkstring(L, 8);
+	view->animateNow(x, y, width, height, duration, delay, [NSString stringWithUTF8String:animType]);
+	
+	return 0;
 }
 
 //----------------------------------------------------------------------------------------------
@@ -1587,6 +1663,8 @@ public:
 		UILabel* label = [[UILabel alloc] init];
 		[label setFont:[UIFont systemFontOfSize: 12]];
 		[label setTextAlignment:UITextAlignmentLeft];
+        [label setBackgroundColor:[UIColor clearColor]];
+        [label setOpaque:FALSE];
 		[label setNumberOfLines:1];
 		[label retain];
 		
@@ -1611,11 +1689,26 @@ public:
 		[(UILabel*)uiView setBackgroundColor:color];
 	}
 	
-	
-		
 	void setFont(NSString* fontname, CGFloat s)
 	{
 		[(UILabel*)uiView setFont:[UIFont fontWithName:fontname size:s]];
+	}
+    
+    void setTextAlignment(NSString* align)
+	{
+        if ([align isEqualToString:@"Left"]) {
+            [(UILabel*)uiView setTextAlignment:NSTextAlignmentLeft];
+        }else if ([align isEqualToString:@"Center"]) {
+            [(UILabel*)uiView setTextAlignment:NSTextAlignmentCenter];
+        }else if ([align isEqualToString:@"Right"]) {
+            [(UILabel*)uiView setTextAlignment:NSTextAlignmentRight];
+        }else if ([align isEqualToString:@"Natural"]) {
+            [(UILabel*)uiView setTextAlignment:NSTextAlignmentNatural];
+        }else if ([align isEqualToString:@"Justified"]) {
+            [(UILabel*)uiView setTextAlignment:NSTextAlignmentJustified];
+        }else{
+            [(UILabel*)uiView setTextAlignment:NSTextAlignmentLeft];
+        }
 	}
 };
 
@@ -1632,6 +1725,7 @@ private:
 	static int setTextColor(lua_State* L);
 	static int setBGColor(lua_State* L);
 	static int setFont(lua_State* L);
+    static int setTextAlignment(lua_State* L);
 };
 
 LabelBinder::LabelBinder(lua_State* L)
@@ -1641,6 +1735,7 @@ LabelBinder::LabelBinder(lua_State* L)
 		{"setTextColor", setTextColor},
 		{"setBGColor", setBGColor},
 		{"setFont", setFont},
+        {"setTextAlignment", setTextAlignment},
 		{NULL, NULL},
 	};
 	
@@ -1717,6 +1812,16 @@ int LabelBinder::setFont(lua_State* L)
 	return 0;
 }
 
+int LabelBinder::setTextAlignment(lua_State* L)
+{
+	GReferenced* labelObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
+	Label* label = static_cast<Label*>(labelObject->proxy());
+	
+	const char* align = luaL_checkstring(L, 2);
+	label->setTextAlignment([NSString stringWithUTF8String:align]);
+	return 0;
+}
+
 
 #pragma mark ---- UITableView ----
 //----------------------------------------------------------------------------------------------
@@ -1734,6 +1839,7 @@ int LabelBinder::setFont(lua_State* L)
 @property (nonatomic, assign) lua_State* L;
 @property (nonatomic, retain) NSArray *dataArray;
 @property (nonatomic, assign) NSString *cellText;
+@property (nonatomic, assign) UITableViewCellAccessoryType accessoryType;
 
 @end
 
@@ -1743,6 +1849,7 @@ int LabelBinder::setFont(lua_State* L)
 @synthesize L;
 @synthesize dataArray;
 @synthesize cellText;
+@synthesize accessoryType;
 
 //delegate methods
 -(void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
@@ -1768,6 +1875,66 @@ int LabelBinder::setFont(lua_State* L)
 	}
 	lua_pop(L, 1);	
     return;
+}
+
+-(void)tableView:(UITableView *)tableView accessoryButtonTappedForRowWithIndexPath:(NSIndexPath *)indexPath
+{
+	getObject(L, target);
+	if (!lua_isnil(L, -1))
+	{
+		lua_getfield(L, -1, "dispatchEvent");
+		lua_pushvalue(L, -2);
+		lua_getglobal(L, "Event");
+		lua_getfield(L, -1, "new");
+		lua_remove(L, -2);
+		lua_pushstring(L, "accessoryButtonTappedForRowWithIndexPath");
+		lua_call(L, 1, 1);
+        
+        lua_pushinteger(L, indexPath.row);
+        lua_setfield(L, -2, "Row");
+		if (lua_pcall(L, 2, 0, 0) != 0)
+		{
+			g_error(L, lua_tostring(L, -1));
+			return;
+		}
+	}
+	lua_pop(L, 1);
+    return;
+}
+
+-(void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    getObject(L, target);
+    if (!lua_isnil(L, -1))
+    {
+        lua_getfield(L, -1, "dispatchEvent");
+        lua_pushvalue(L, -2);
+        lua_getglobal(L, "Event");
+        lua_getfield(L, -1, "new");
+        lua_remove(L, -2);
+        lua_pushstring(L, "commitEditingStyleRowAtIndexPath");
+        lua_call(L, 1, 1);
+        
+        lua_pushinteger(L, indexPath.row);
+        lua_setfield(L, -2, "Row");
+        if (lua_pcall(L, 2, 0, 0) != 0)
+        {
+            g_error(L, lua_tostring(L, -1));
+            return;
+        }
+    }
+    lua_pop(L, 1);
+    return;
+        
+    NSArray *removeIndexPaths = [NSArray arrayWithObjects:
+                                 indexPath,
+                                 nil];
+    
+    [tableView beginUpdates];
+    
+    [tableView deleteRowsAtIndexPaths:removeIndexPaths withRowAnimation:UITableViewRowAnimationRight];
+        
+    [tableView endUpdates];
 }
 
 //datasource methods
@@ -1812,6 +1979,7 @@ int LabelBinder::setFont(lua_State* L)
     //cellText is set by calling tableView:setCellText() from the 
     //Gideros event function called above
     cell.textLabel.text = self.cellText;
+    cell.accessoryType = self.accessoryType;
     return cell;
 }
 
@@ -1976,6 +2144,63 @@ public:
         }
     }
     
+    void removeRow(int rowNum, int sectNum, NSString *animStyle)
+    {
+        UITableView *tableView = (UITableView *)uiView;
+        
+        NSArray *removeIndexPaths = [NSArray arrayWithObjects:
+                                     [NSIndexPath indexPathForRow:rowNum inSection:sectNum],
+                                     nil];
+        
+        [tableView beginUpdates];
+        
+        if ([animStyle isEqualToString:@"None"]) {
+            [tableView deleteRowsAtIndexPaths:removeIndexPaths withRowAnimation:UITableViewRowAnimationNone];
+        }else if([animStyle isEqualToString:@"Fade"]){
+            [tableView deleteRowsAtIndexPaths:removeIndexPaths withRowAnimation:UITableViewRowAnimationFade];
+        }else  if([animStyle isEqualToString:@"Right"]){
+            [tableView deleteRowsAtIndexPaths:removeIndexPaths withRowAnimation:UITableViewRowAnimationRight];
+        }else if([animStyle isEqualToString:@"Left"]){
+            [tableView deleteRowsAtIndexPaths:removeIndexPaths withRowAnimation:UITableViewRowAnimationLeft];
+        }else if([animStyle isEqualToString:@"Top"]){
+            [tableView deleteRowsAtIndexPaths:removeIndexPaths withRowAnimation:UITableViewRowAnimationTop];
+        }else if([animStyle isEqualToString:@"Bottom"]){
+            [tableView deleteRowsAtIndexPaths:removeIndexPaths withRowAnimation:UITableViewRowAnimationBottom];
+        }else if([animStyle isEqualToString:@"Middle"]){
+            [tableView deleteRowsAtIndexPaths:removeIndexPaths withRowAnimation:UITableViewRowAnimationMiddle];
+        }else{
+            [tableView deleteRowsAtIndexPaths:removeIndexPaths withRowAnimation:UITableViewRowAnimationNone];
+        }
+        
+        [tableView endUpdates];
+    }
+    
+    void setAccessoryType(NSString *accessoryType)
+    {
+        if ([accessoryType isEqualToString:@"None"]) {
+            delegate.accessoryType = UITableViewCellAccessoryNone;
+        }else if([accessoryType isEqualToString:@"DisclosureIndicator"]){
+            delegate.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+        }else if([accessoryType isEqualToString:@"DetailDisclosureButton"]){
+            delegate.accessoryType = UITableViewCellAccessoryDetailDisclosureButton;
+        }else if([accessoryType isEqualToString:@"Checkmark"]){
+            delegate.accessoryType = UITableViewCellAccessoryCheckmark;
+        }else{
+            delegate.accessoryType = UITableViewCellAccessoryNone;
+        }
+    }
+    
+    void deselectRow(int rowNum, int sectNum, BOOL animStyle)
+    {
+        UITableView *tableView = (UITableView *)uiView;
+        
+        NSIndexPath *deselectPath = [NSIndexPath indexPathForRow:rowNum inSection:sectNum];
+        
+        [tableView beginUpdates];
+        [tableView deselectRowAtIndexPath:deselectPath animated:animStyle];
+        [tableView endUpdates];
+    }
+    
 private:
     lua_State *L;
     UITableViewDelegate *delegate;
@@ -1998,7 +2223,10 @@ private:
     static int addRow(lua_State *L);
     static int reloadRow(lua_State *L);
     static int setCellText(lua_State *L);
+    static int setAccessoryType(lua_State *L);
     static int toggleEditing(lua_State *L);
+    static int removeRow(lua_State *L);
+    static int deselectRow(lua_State *L);
 };
 
 TableViewBinder::TableViewBinder(lua_State* L)
@@ -2011,7 +2239,10 @@ TableViewBinder::TableViewBinder(lua_State* L)
         {"addRow", addRow},
         {"reloadRow", reloadRow},
         {"setCellText", setCellText},
+        {"setAccessoryType", setAccessoryType},
         {"toggleEditing", toggleEditing},
+        {"removeRow", removeRow},
+        {"deselectRow", deselectRow},
 		{NULL, NULL},
 	};
 	
@@ -2105,6 +2336,17 @@ int TableViewBinder::setCellText(lua_State *L)
     return 0;
 }
 
+int TableViewBinder::setAccessoryType(lua_State *L)
+{
+    GReferenced* tableViewObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
+	TableView *tableView = static_cast<TableView*>(tableViewObject->proxy());
+    
+    //pop the text value from the stack
+    NSString *type = [NSString stringWithUTF8String:luaL_checkstring(L, -1)];
+    tableView->setAccessoryType(type);
+    return 0;
+}
+
 int TableViewBinder::setSeparatorStyle(lua_State *L)
 {
     GReferenced* tableViewObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
@@ -2138,6 +2380,32 @@ int TableViewBinder::toggleEditing(lua_State* L)
     Boolean anim = lua_toboolean(L, -1);
     
     tableView->toggleEditing(anim);
+    return 0;
+}
+
+int TableViewBinder::removeRow(lua_State* L)
+{
+    GReferenced* tableViewObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
+	TableView *tableView = static_cast<TableView*>(tableViewObject->proxy());
+    
+    NSString *text = [NSString stringWithUTF8String:luaL_checkstring(L, -1)];
+    int sec = lua_tointeger(L, -2);
+    int ro = lua_tointeger(L, -3);
+    
+    tableView->removeRow(ro,sec,text);
+    return 0;
+}
+
+int TableViewBinder::deselectRow(lua_State* L)
+{
+    GReferenced* tableViewObject = static_cast<GReferenced*>(g_getInstance(L, "Label", 1));
+	TableView *tableView = static_cast<TableView*>(tableViewObject->proxy());
+    
+    BOOL anim = lua_toboolean(L, -1);
+    int sec = lua_tointeger(L, -2);
+    int ro = lua_tointeger(L, -3);
+    
+    tableView->deselectRow(ro,sec,anim);
     return 0;
 }
 
@@ -2560,6 +2828,27 @@ public:
         return [rowNames objectAtIndex:[pickerView selectedRowInComponent:0]];
 		
 	}
+    
+    virtual void showSelectionIndicator(BOOL show)
+	{
+		pickerView.showsSelectionIndicator = show;
+        /*
+         //Make a view to set as background of UIPickerView
+         UIView * viewForPickerView = [[UIView alloc]initWithFrame:CGRectMake(0.0, 0.0, 320.0, 216.0)];
+         [viewForPickerView setBackgroundColor:[UIColor colorWithPatternImage:[UIImage imageNamed:@"pickerViewBackground.png"]]];
+         
+         [[[pickerView subviews]objectAtIndex:2] addSubview: viewForPickerView];
+         
+         //UIPickerView has 8 subviews like, background, rows, container etc.
+         // hide unnecessary subview
+         
+        [(UIView*)[[pickerView subviews] objectAtIndex:3] setHidden:YES];
+        [(UIView*)[[pickerView subviews] objectAtIndex:5] setHidden:YES];
+        [(UIView*)[[pickerView subviews] objectAtIndex:6] setHidden:YES];
+        [(UIView*)[[pickerView subviews] objectAtIndex:7] setHidden:YES];
+        [(UIView*)[[pickerView subviews] objectAtIndex:8] setHidden:YES];
+         */
+	}
 
 	
 private:
@@ -2581,6 +2870,7 @@ private:
     static int setRow(lua_State* L);
     static int getPickedRow(lua_State* L);
     static int getPickedItem(lua_State* L);
+    static int showSelectionIndicator(lua_State* L);
 };
 
 
@@ -2592,6 +2882,7 @@ PickerViewBinder::PickerViewBinder(lua_State* L)
         {"getPickedRow", getPickedRow},
         {"setRow", setRow},
         {"getPickedItem", getPickedItem},
+        {"showSelectionIndicator", showSelectionIndicator},
 		{NULL, NULL},
 	};
 	
@@ -2675,6 +2966,19 @@ int PickerViewBinder::getPickedItem(lua_State* L)
 	return 1;
 }
 
+int PickerViewBinder::showSelectionIndicator(lua_State* L)
+{
+	GReferenced* object = static_cast<GReferenced*>(g_getInstance(L, "PickerView", 1));
+	PickerView* pickerObject = static_cast<PickerView*>(object->proxy());
+    
+    BOOL i = lua_toboolean(L, 2);
+    
+	pickerObject->showSelectionIndicator(i);
+    
+	return 0;
+    
+}
+
 //-------------------------------------------//
 //------- UIPickerView ends here -------------//
 //-------------------------------------------//
@@ -2698,7 +3002,7 @@ int PickerViewBinder::getPickedItem(lua_State* L)
 @property (nonatomic, assign) lua_State* L;
 
 - (BOOL)textFieldShouldReturn:(UITextField *)textField;
-
+    
 @end
 
 @implementation UITextFieldDelegate
@@ -2770,9 +3074,44 @@ int PickerViewBinder::getPickedItem(lua_State* L)
 		}
 	}
 	
-	lua_pop(L, 1);	
+	lua_pop(L, 1);
 	
 	//NSLog(@"TextField textFieldShouldEndEditing");
+	
+    return YES;
+}
+
+- (BOOL)textFieldShouldBeginEditing:(UITextField *)textField
+{
+	
+	getObject(L, target);
+	
+	if (!lua_isnil(L, -1))
+	{
+		lua_getfield(L, -1, "dispatchEvent");
+		
+		lua_pushvalue(L, -2);
+		
+		lua_getglobal(L, "Event");
+		lua_getfield(L, -1, "new");
+		lua_remove(L, -2);
+		lua_pushstring(L, "onTextFieldEditBegin");
+		lua_call(L, 1, 1);
+		
+		NSString *text = textField.text;
+		lua_pushstring(L, [text UTF8String]);
+		lua_setfield(L, -2, "text");
+		
+		if (lua_pcall(L, 2, 0, 0) != 0)
+		{
+			g_error(L, lua_tostring(L, -1));
+			return true;
+		}
+	}
+	
+	lua_pop(L, 1);	
+	
+	//NSLog(@"TextField textFieldShouldBeginEditing");
 	
     return YES;
 }
@@ -2811,11 +3150,125 @@ public:
 		uiView = textField;
 		
 	}
+    
+    virtual void setReturnKeyType(NSString* type)
+	{
+        if ([type isEqualToString:@"Done"]) {
+            textField.returnKeyType = UIReturnKeyDone;
+        } else if ([type isEqualToString:@"Emergency Call"]) {
+            textField.returnKeyType = UIReturnKeyEmergencyCall;
+        } else if ([type isEqualToString:@"Go"]) {
+            textField.returnKeyType = UIReturnKeyGo;
+        } else if ([type isEqualToString:@"Google"]) {
+            textField.returnKeyType = UIReturnKeyGoogle;
+        } else if ([type isEqualToString:@"Join"]) {
+            textField.returnKeyType = UIReturnKeyJoin;
+        } else if ([type isEqualToString:@"Next"]) {
+            textField.returnKeyType = UIReturnKeyNext;
+        } else if ([type isEqualToString:@"Route"]) {
+            textField.returnKeyType = UIReturnKeyRoute;
+        } else if ([type isEqualToString:@"Search"]) {
+            textField.returnKeyType = UIReturnKeySearch;
+        } else if ([type isEqualToString:@"Send"]) {
+            textField.returnKeyType = UIReturnKeySend;
+        } else if ([type isEqualToString:@"Yahoo"]) {
+            textField.returnKeyType = UIReturnKeyYahoo;
+        } else {
+            textField.returnKeyType = UIReturnKeyDefault;
+        }
+		
+	}
+    
+    virtual void setBorderStyle(NSString* style)
+	{
+        if ([style isEqualToString:@"Bezel"]) {
+            textField.borderStyle = UITextBorderStyleBezel;
+        } else if ([style isEqualToString:@"Line"]) {
+            textField.borderStyle = UITextBorderStyleLine;
+        } else if ([style isEqualToString:@"None"]) {
+            textField.borderStyle = UITextBorderStyleNone;
+        } else if ([style isEqualToString:@"Rounded Rect"]) {
+            textField.borderStyle = UITextBorderStyleRoundedRect;
+        } else {
+            textField.borderStyle = UITextBorderStyleNone;
+        }
+	}
 	
 	virtual void setText(NSString* text)	
 	{
 		textField.text = text;
-		
+	}
+    
+    virtual void setKeyboardType(NSString* type)
+	{
+        if ([type isEqualToString:@"Default"]) {
+            textField.keyboardType = UIKeyboardTypeDefault;
+        } else if ([type isEqualToString:@"Alphabet"]) {
+            textField.keyboardType = UIKeyboardTypeAlphabet;
+        } else if ([type isEqualToString:@"ASCIICapable"]) {
+            textField.keyboardType = UIKeyboardTypeASCIICapable;
+        } else if ([type isEqualToString:@"Decimal Pad"]) {
+            textField.keyboardType = UIKeyboardTypeDecimalPad;
+        } else if ([type isEqualToString:@"Email Address"]) {
+            textField.keyboardType = UIKeyboardTypeEmailAddress;
+        } else if ([type isEqualToString:@"Name Phone Pad"]) {
+            textField.keyboardType = UIKeyboardTypeNamePhonePad;
+        } else if ([type isEqualToString:@"Number Pad"]) {
+            textField.keyboardType = UIKeyboardTypeNumberPad;
+        } else if ([type isEqualToString:@"Numbers and Punctuation"]) {
+            textField.keyboardType = UIKeyboardTypeNumbersAndPunctuation;
+        } else if ([type isEqualToString:@"Phone Pad"]) {
+            textField.keyboardType = UIKeyboardTypePhonePad;
+        } else if ([type isEqualToString:@"Twitter"]) {
+            textField.keyboardType = UIKeyboardTypeTwitter;
+        } else if ([type isEqualToString:@"URL"]) {
+            textField.keyboardType = UIKeyboardTypeURL;
+        } else {
+            textField.keyboardType = UIKeyboardTypeDefault;
+        }
+	}
+    
+    virtual void setClearButton(NSString* type)
+	{
+        if ([type isEqualToString:@"Never"]) {
+            textField.clearButtonMode = UITextFieldViewModeNever;
+        } else if ([type isEqualToString:@"While Editing"]) {
+            textField.clearButtonMode = UITextFieldViewModeWhileEditing;
+        } else if ([type isEqualToString:@"Unless Editing"]) {
+            textField.clearButtonMode = UITextFieldViewModeUnlessEditing;
+        } else if ([type isEqualToString:@"Always"]) {
+            textField.clearButtonMode = UITextFieldViewModeAlways;
+        } else {
+            textField.clearButtonMode = UITextFieldViewModeNever;
+        }
+	}
+    
+    virtual void setKeyboardAppearance(NSString* style)
+	{
+        if ([style isEqualToString:@"Default"]) {
+            textField.keyboardAppearance = UIKeyboardAppearanceDefault;
+        } else if ([style isEqualToString:@"Alert"]) {
+            textField.keyboardAppearance = UIKeyboardAppearanceAlert;
+        } else {
+            textField.keyboardAppearance = UIKeyboardAppearanceDefault;
+        }
+	}
+    
+    virtual void setTextAlign(NSString* align)
+	{
+        if ([align isEqualToString:@"Left"]) {
+            textField.textAlignment = NSTextAlignmentLeft;
+        }else if ([align isEqualToString:@"Center"]) {
+            textField.textAlignment = NSTextAlignmentCenter;
+        }else if ([align isEqualToString:@"Right"]) {
+            textField.textAlignment = NSTextAlignmentRight;
+        }else if ([align isEqualToString:@"Natural"]) {
+            textField.textAlignment = NSTextAlignmentNatural;
+        }else if ([align isEqualToString:@"Justified"]) {
+            textField.textAlignment = NSTextAlignmentJustified;
+        }else{
+            textField.textAlignment = NSTextAlignmentLeft;
+        }
 	}
 	
 	virtual NSString* getText()	
@@ -2845,6 +3298,14 @@ public:
         [textField becomeFirstResponder];
         
 	}
+    
+    virtual void hideKeyboard()
+	{
+        
+		// hide keyboard
+        [textField resignFirstResponder];
+        
+	}
 	
 private:
 	lua_State* L;
@@ -2860,23 +3321,37 @@ public:
 	
 private:
 	static int create(lua_State* L);
+    static int setReturnKeyType(lua_State* L);
+    static int setBorderStyle(lua_State* L);
 	static int destruct(lua_State* L);
 	static int setText(lua_State* L);
+    static int setKeyboardType(lua_State* L);
+    static int setKeyboardAppearance(lua_State* L);
+    static int setTextAlign(lua_State* L);
+    static int setClearButton(lua_State* L);
 	static int getText(lua_State* L);
     static int setTextColor(lua_State* L);
     static int setBGColor(lua_State* L);
     static int showKeyboard(lua_State* L);
+    static int hideKeyboard(lua_State* L);
 };
 
 
 TextFieldBinder2::TextFieldBinder2(lua_State* L)
 {
 	const luaL_Reg functionlist[] = {
+        {"setReturnKeyType", setReturnKeyType},
+        {"setBorderStyle", setBorderStyle},
 		{"setText", setText},
+        {"setKeyboardType", setKeyboardType},
+        {"setKeyboardAppearance", setKeyboardAppearance},
+        {"setTextAlign", setTextAlign},
+        {"setClearButton", setClearButton},
 		{"getText", getText},
         {"setTextColor", setTextColor},
 		{"setBGColor", setBGColor},
 		{"showKeyboard", showKeyboard},
+        {"hideKeyboard", hideKeyboard},
 		{NULL, NULL},
 	};
 	
@@ -2920,6 +3395,68 @@ int TextFieldBinder2::setText(lua_State* L)
 	const char* txt = luaL_checkstring(L, 2);
 	//NSLog(@"Binder setText");
 	field->setText([NSString stringWithUTF8String:txt]);
+	
+	return 0;
+}
+
+int TextFieldBinder2::setKeyboardType(lua_State* L)
+{
+	GReferenced* textFieldObject = static_cast<GReferenced*>(g_getInstance(L, "TextField2", 1));
+	TextField2* field = static_cast<TextField2*>(textFieldObject->proxy());
+	const char* txt = luaL_checkstring(L, 2);
+	field->setKeyboardType([NSString stringWithUTF8String:txt]);
+	
+	return 0;
+}
+
+int TextFieldBinder2::setKeyboardAppearance(lua_State* L)
+{
+	GReferenced* textFieldObject = static_cast<GReferenced*>(g_getInstance(L, "TextField2", 1));
+	TextField2* field = static_cast<TextField2*>(textFieldObject->proxy());
+	const char* txt = luaL_checkstring(L, 2);
+	field->setKeyboardAppearance([NSString stringWithUTF8String:txt]);
+	
+	return 0;
+}
+
+int TextFieldBinder2::setTextAlign(lua_State* L)
+{
+	GReferenced* textFieldObject = static_cast<GReferenced*>(g_getInstance(L, "TextField2", 1));
+	TextField2* field = static_cast<TextField2*>(textFieldObject->proxy());
+	//NSLog(@"Binder setText");
+	const char* align = luaL_checkstring(L, 2);
+	//NSLog(@"Binder setText");
+	field->setTextAlign([NSString stringWithUTF8String:align]);
+	
+	return 0;
+}
+
+int TextFieldBinder2::setReturnKeyType(lua_State* L)
+{
+	GReferenced* textFieldObject = static_cast<GReferenced*>(g_getInstance(L, "TextField2", 1));
+	TextField2* field = static_cast<TextField2*>(textFieldObject->proxy());
+	const char* txt = luaL_checkstring(L, 2);
+	field->setReturnKeyType([NSString stringWithUTF8String:txt]);
+	
+	return 0;
+}
+
+int TextFieldBinder2::setBorderStyle(lua_State* L)
+{
+	GReferenced* textFieldObject = static_cast<GReferenced*>(g_getInstance(L, "TextField2", 1));
+	TextField2* field = static_cast<TextField2*>(textFieldObject->proxy());
+	const char* txt = luaL_checkstring(L, 2);
+	field->setBorderStyle([NSString stringWithUTF8String:txt]);
+	
+	return 0;
+}
+
+int TextFieldBinder2::setClearButton(lua_State* L)
+{
+	GReferenced* textFieldObject = static_cast<GReferenced*>(g_getInstance(L, "TextField2", 1));
+	TextField2* field = static_cast<TextField2*>(textFieldObject->proxy());
+	const char* txt = luaL_checkstring(L, 2);
+	field->setClearButton([NSString stringWithUTF8String:txt]);
 	
 	return 0;
 }
@@ -2969,6 +3506,15 @@ int TextFieldBinder2::showKeyboard(lua_State* L)
     TextField2* field = static_cast<TextField2*>(textFieldObject->proxy());
     field->showKeyboard();
     //NSLog(@"Binder showKeyboard");
+    return 1;
+}
+
+int TextFieldBinder2::hideKeyboard(lua_State* L)
+{
+    GReferenced* textFieldObject = static_cast<GReferenced*>(g_getInstance(L, "TextField2", 1));
+    TextField2* field = static_cast<TextField2*>(textFieldObject->proxy());
+    field->hideKeyboard();
+    //NSLog(@"Binder hideKeyboard");
     return 1;
 }
 
@@ -3206,7 +3752,7 @@ static int removeFromRootView(lua_State* L)
 	if (uiView.superview == rootView)
 	{
 		[uiView removeFromSuperview];
-		
+		[uiView autorelease];
 		topUIViews.erase(uiView);
 
 		lua_pushlightuserdata(L, (void *)&KEY_ROOTOBJECTS);

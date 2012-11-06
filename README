@@ -12,6 +12,13 @@ UIKit for Gideros Studio is a plugin for iOS that allows usage of UIView, UIButt
 
 Events are dispatched to Gideros Studio.
 
+Note - Andy Bower has ported Wax by Corey Johnson to Gideros Studio. 
+This is a bridge between Lua and Objective C, so that all features of Objective C are
+now exposed in Gideros Studio.
+Please see:
+http://bowerhaus.eu/blog/files/hot_wax.html
+http://www.giderosmobile.com/forum/discussion/1989/uikit-issue#Item_8
+
 Known issues:
 
 1. Not all methods and properties are implemented.
